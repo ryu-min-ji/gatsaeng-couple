@@ -9,3 +9,20 @@ export function todayKST(): string {
   const kstMs = Date.now() + 9 * 60 * 60 * 1000;
   return new Date(kstMs).toISOString().slice(0, 10);
 }
+
+/** 임의의 타임스탬프를 KST 기준 "YYYY-MM-DD"로 변환한다 (댓글 날짜 구분선 등에 사용). */
+export function dateKeyKST(isoString: string): string {
+  const kstMs = new Date(isoString).getTime() + 9 * 60 * 60 * 1000;
+  return new Date(kstMs).toISOString().slice(0, 10);
+}
+
+/** 댓글 날짜 구분선 표시용: "2026년 8월 21일 금요일" (KST 기준). */
+export function formatDateDividerKST(isoString: string): string {
+  return new Date(isoString).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: "Asia/Seoul",
+  });
+}

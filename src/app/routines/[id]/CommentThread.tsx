@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Avatar from "@/components/Avatar";
+import { dateKeyKST, formatDateDividerKST } from "@/lib/date";
 
 type CommentRecord = {
   id: string;
@@ -130,19 +131,29 @@ export default function CommentThread({
     <div className="mt-3 border-t border-border pt-3">
       {comments.length > 0 && (
         <ul className="mb-3 flex flex-col gap-3">
-          {comments.map((comment) => {
+          {comments.map((comment, index) => {
             const isMine = comment.author_id === userId;
             const isEditing = editingId === comment.id;
             const time = new Date(comment.created_at).toLocaleTimeString("ko-KR", {
               hour: "2-digit",
               minute: "2-digit",
+              timeZone: "Asia/Seoul",
             });
+            const dateKey = dateKeyKST(comment.created_at);
+            const prevComment = index > 0 ? comments[index - 1] : undefined;
+            const prevDateKey = prevComment ? dateKeyKST(prevComment.created_at) : null;
+            const showDateDivider = dateKey !== prevDateKey;
 
             return (
-              <li
-                key={comment.id}
-                className={cn("flex items-end gap-2", isMine && "flex-row-reverse")}
-              >
+              <li key={comment.id} className="flex flex-col gap-3">
+                {showDateDivider && (
+                  <div className="flex items-center justify-center">
+                    <span className="rounded-full bg-bg px-3 py-1 text-[10px] font-bold text-ink-muted">
+                      {formatDateDividerKST(comment.created_at)}
+                    </span>
+                  </div>
+                )}
+                <div className={cn("flex items-end gap-2", isMine && "flex-row-reverse")}>
                 <Avatar
                   avatarUrl={avatarFor(comment.author_id)}
                   nickname={nicknameFor(comment.author_id)}
@@ -237,6 +248,7 @@ export default function CommentThread({
                       </button>
                     </div>
                   )}
+                </div>
                 </div>
               </li>
             );
