@@ -241,3 +241,29 @@ create policy "proofs_insert_self"
 --    다른 커플의 체크인은 애초에 이벤트가 전달되지 않는다.
 -- -------------------------------------------------------------
 alter publication supabase_realtime add table public.check_ins;
+
+
+-- -------------------------------------------------------------
+-- 9. Storage — 프로필 사진 버킷
+--    버킷 자체(이름 avatars, public)는 대시보드에서 생성해야 한다.
+--    파일 경로 규칙: {user_id}/avatar.{ext}
+--    프로필 사진은 파트너뿐 아니라 화면 곳곳(마이페이지 등)에 계속
+--    노출되는 가벼운 정보라 proofs와 달리 public 버킷으로 둔다.
+-- -------------------------------------------------------------
+create policy "avatars_select_public"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+create policy "avatars_insert_self"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "avatars_update_self"
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
