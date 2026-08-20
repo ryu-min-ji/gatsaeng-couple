@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { calculateRoutineStreak } from "@/lib/streak";
+import LogoutButton from "./LogoutButton";
+import BottomNav from "@/components/BottomNav";
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -26,7 +29,8 @@ export default async function MyPage() {
 
   const { data: routines } = await supabase
     .from("routines")
-    .select("id, success_rule, start_date");
+    .select("id, title, success_rule, start_date")
+    .order("created_at", { ascending: true });
 
   const routineIds = routines?.map((r) => r.id) ?? [];
 
@@ -41,10 +45,11 @@ export default async function MyPage() {
   let successDaysTotal = 0;
   let elapsedDaysTotal = 0;
   let longestStreakOverall = 0;
+  const currentStreakByRoutine = new Map<string, number>();
 
   for (const routine of routines ?? []) {
     const checkInsForRoutine = (allCheckIns ?? []).filter((c) => c.routine_id === routine.id);
-    const { longestStreak, successDates } = calculateRoutineStreak(
+    const { currentStreak, longestStreak, successDates } = calculateRoutineStreak(
       checkInsForRoutine,
       routine.success_rule,
       user.id,
@@ -52,6 +57,7 @@ export default async function MyPage() {
       today
     );
 
+    currentStreakByRoutine.set(routine.id, currentStreak);
     longestStreakOverall = Math.max(longestStreakOverall, longestStreak);
     successDaysTotal += successDates.size;
     elapsedDaysTotal +=
@@ -102,6 +108,36 @@ export default async function MyPage() {
           </div>
         ))}
       </section>
+
+      <section className="mt-6">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">진행 중인 루틴</h2>
+        <ul className="flex flex-col gap-2">
+          {routines?.map((routine) => (
+            <li key={routine.id}>
+              <Link
+                href={`/routines/${routine.id}`}
+                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition hover:bg-coral/5"
+              >
+                <span className="text-sm font-bold">{routine.title}</span>
+                <span className="text-xs text-ink-muted">
+                  {currentStreakByRoutine.get(routine.id) ?? 0}일 연속
+                </span>
+              </Link>
+            </li>
+          ))}
+          {(!routines || routines.length === 0) && (
+            <li className="rounded-2xl bg-white p-4 text-center text-sm text-ink-muted shadow-sm">
+              아직 만든 루틴이 없어요.
+            </li>
+          )}
+        </ul>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">설정</h2>
+        <LogoutButton />
+      </section>
+      <BottomNav />
     </main>
   );
 }

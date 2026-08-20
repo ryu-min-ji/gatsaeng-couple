@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { calculateRoutineStreak } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +103,14 @@ export default async function RoutineDetailPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
-      <h1 className="font-display text-xl font-bold text-plum">{routine.title}</h1>
+      <Link
+        href="/home"
+        aria-label="뒤로 가기"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-plum hover:bg-white"
+      >
+        &lt;
+      </Link>
+      <h1 className="mt-2 font-display text-xl font-bold text-plum">{routine.title}</h1>
       <p className="mt-1 text-xs text-ink-muted">
         성공 조건: {routine.success_rule === "both" ? "둘 다 인증해야 성공" : "한 명만 인증해도 성공"}
       </p>

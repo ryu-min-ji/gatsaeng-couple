@@ -4,6 +4,7 @@ import Link from "next/link";
 import CheckInItem from "./CheckInItem";
 import RealtimeRefresher from "./RealtimeRefresher";
 import { calculateRoutineStreak } from "@/lib/streak";
+import BottomNav from "@/components/BottomNav";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -151,6 +152,7 @@ export default async function HomePage() {
           )}
         </ul>
       </section>
+      <BottomNav />
     </main>
   );
 }
