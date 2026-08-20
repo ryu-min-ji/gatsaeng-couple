@@ -21,7 +21,7 @@ export default function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="w-full rounded-2xl bg-white p-4 text-left text-sm font-bold text-coral shadow-sm transition hover:bg-coral/5 disabled:opacity-40"
+      className="w-full rounded-2xl bg-surface p-4 text-left text-sm font-bold text-coral shadow-sm transition hover:bg-coral/5 disabled:opacity-40"
     >
       {loading ? "로그아웃하는 중..." : "로그아웃"}
     </button>

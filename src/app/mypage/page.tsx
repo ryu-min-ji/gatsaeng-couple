@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { calculateRoutineStreak } from "@/lib/streak";
+import { calculateRoutineStreak, isTargetDay } from "@/lib/streak";
 import LogoutButton from "./LogoutButton";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -37,7 +38,7 @@ export default async function MyPage() {
 
   const { data: routines } = await supabase
     .from("routines")
-    .select("id, title, success_rule, start_date")
+    .select("id, title, success_rule, frequency, frequency_days, start_date")
     .order("created_at", { ascending: true });
 
   const routineIds = routines?.map((r) => r.id) ?? [];
@@ -46,7 +47,7 @@ export default async function MyPage() {
     routineIds.length > 0
       ? await supabase
           .from("check_ins")
-          .select("routine_id, user_id, date")
+          .select("routine_id, user_id, date, status")
           .in("routine_id", routineIds)
       : { data: [] };
 
@@ -62,24 +63,31 @@ export default async function MyPage() {
       routine.success_rule,
       user.id,
       me?.partner_id ?? null,
-      today
+      today,
+      routine.frequency,
+      routine.frequency_days
     );
 
     currentStreakByRoutine.set(routine.id, currentStreak);
     longestStreakOverall = Math.max(longestStreakOverall, longestStreak);
     successDaysTotal += successDates.size;
-    elapsedDaysTotal +=
-      Math.floor(
-        (new Date(`${today}T00:00:00Z`).getTime() - new Date(`${routine.start_date}T00:00:00Z`).getTime()) /
-          86400000
-      ) + 1;
+
+    // 성공률 분모는 목표일로 잡힌 날만 센다 (daysElapsed 아님)
+    const d = new Date(`${routine.start_date}T00:00:00Z`);
+    const end = new Date(`${today}T00:00:00Z`);
+    for (let i = 0; i < 3660 && d.getTime() <= end.getTime(); i++) {
+      if (isTargetDay(d.toISOString().slice(0, 10), routine.frequency, routine.frequency_days)) {
+        elapsedDaysTotal++;
+      }
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
   }
 
   const overallSuccessRate =
     elapsedDaysTotal > 0 ? Math.round((successDaysTotal / elapsedDaysTotal) * 100) : 0;
 
   const checkInsThisMonth = (allCheckIns ?? []).filter(
-    (c) => c.user_id === user.id && c.date.startsWith(thisMonthPrefix)
+    (c) => c.user_id === user.id && c.date.startsWith(thisMonthPrefix) && c.status === "success"
   ).length;
 
   const stats = [
@@ -107,7 +115,7 @@ export default async function MyPage() {
           />
         </div>
         <div>
-          <h1 className="font-display text-lg font-bold text-plum">
+          <h1 className="font-display text-lg font-bold text-plum dark:text-white">
             {me?.nickname} {partner ? `& ${partner.nickname}` : ""}
           </h1>
           {connectedDaysAgo !== null && (
@@ -118,8 +126,8 @@ export default async function MyPage() {
 
       <section className="mt-6 grid grid-cols-2 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="font-display text-2xl font-bold text-plum">{stat.value}</div>
+          <div key={stat.label} className="rounded-2xl bg-surface p-4 shadow-sm">
+            <div className="font-display text-2xl font-bold text-plum dark:text-white">{stat.value}</div>
             <div className="mt-1 text-xs text-ink-muted">{stat.label}</div>
           </div>
         ))}
@@ -132,7 +140,7 @@ export default async function MyPage() {
             <li key={routine.id}>
               <Link
                 href={`/routines/${routine.id}`}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition hover:bg-coral/5"
+                className="flex items-center justify-between rounded-2xl bg-surface p-4 shadow-sm transition hover:bg-coral/5"
               >
                 <span className="text-sm font-bold">{routine.title}</span>
                 <span className="text-xs text-ink-muted">
@@ -142,7 +150,7 @@ export default async function MyPage() {
             </li>
           ))}
           {(!routines || routines.length === 0) && (
-            <li className="rounded-2xl bg-white p-4 text-center text-sm text-ink-muted shadow-sm">
+            <li className="rounded-2xl bg-surface p-4 text-center text-sm text-ink-muted shadow-sm">
               아직 만든 루틴이 없어요.
             </li>
           )}
@@ -153,10 +161,13 @@ export default async function MyPage() {
         <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">설정</h2>
         <Link
           href="/profile/setup"
-          className="mb-2 block rounded-2xl bg-white p-4 text-left text-sm font-bold text-plum shadow-sm transition hover:bg-plum/5"
+          className="mb-2 block rounded-2xl bg-surface p-4 text-left text-sm font-bold text-plum dark:text-white shadow-sm transition hover:bg-plum/5"
         >
           프로필 수정
         </Link>
+        <div className="mb-2">
+          <ThemeToggle />
+        </div>
         <LogoutButton />
       </section>
       <BottomNav />

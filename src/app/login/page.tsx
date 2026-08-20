@@ -15,13 +15,13 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-8 px-6 text-center">
       <div>
-        <h1 className="font-display text-2xl font-bold text-plum">갓생커플</h1>
+        <h1 className="font-display text-2xl font-bold text-plum dark:text-white">갓생커플</h1>
         <p className="mt-2 text-sm text-ink-muted">로그인하고 파트너와 연결해보세요</p>
       </div>
 
       <button
         onClick={signInWithGoogle}
-        className="w-full rounded-xl border border-border bg-white px-6 py-3 text-sm font-bold text-ink shadow-sm transition hover:bg-bg"
+        className="w-full rounded-xl border border-border bg-surface px-6 py-3 text-sm font-bold text-ink shadow-sm transition hover:bg-bg"
       >
         Google로 계속하기
       </button>
