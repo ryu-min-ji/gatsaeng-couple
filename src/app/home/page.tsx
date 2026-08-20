@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CheckInItem from "./CheckInItem";
+import CheckInNotifier from "./CheckInNotifier";
 import RealtimeRefresher from "@/components/RealtimeRefresher";
 import { calculateRoutineStreak } from "@/lib/streak";
 import BottomNav from "@/components/BottomNav";
@@ -122,9 +123,18 @@ export default async function HomePage() {
   const myWeeklyRate = weeklySuccessRate(user.id);
   const partnerWeeklyRate = partner ? weeklySuccessRate(partner.id) : null;
 
+  const routineTitleById = Object.fromEntries((routines ?? []).map((r) => [r.id, r.title]));
+
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
       <RealtimeRefresher table="check_ins" />
+      {partner && (
+        <CheckInNotifier
+          partnerId={partner.id}
+          partnerNickname={partner.nickname}
+          routineTitleById={routineTitleById}
+        />
+      )}
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted">

@@ -6,6 +6,7 @@ import LogoutButton from "./LogoutButton";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
+import NotificationToggle from "@/components/NotificationToggle";
 import { todayKST } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -181,6 +182,9 @@ export default async function MyPage() {
         </Link>
         <div className="mb-2">
           <ThemeToggle />
+        </div>
+        <div className="mb-2">
+          <NotificationToggle />
         </div>
         <LogoutButton />
       </section>
