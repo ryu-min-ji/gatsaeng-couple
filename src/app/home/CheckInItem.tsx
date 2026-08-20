@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import RoutineTypeIcon from "@/components/RoutineTypeIcon";
@@ -96,13 +97,15 @@ export default function CheckInItem({
   return (
     <li className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <RoutineTypeIcon type={verificationType} />
-        <div className="flex-1">
-          <div className="text-sm font-bold">{title}</div>
-          <div className="mt-0.5 text-xs text-ink-muted">
-            {currentStreak > 0 ? `${currentStreak}일 연속 성공` : "아직 인증 전이에요"}
+        <Link href={`/routines/${routineId}`} className="flex flex-1 items-center gap-3">
+          <RoutineTypeIcon type={verificationType} />
+          <div className="flex-1">
+            <div className="text-sm font-bold">{title}</div>
+            <div className="mt-0.5 text-xs text-ink-muted">
+              {currentStreak > 0 ? `${currentStreak}일 연속 성공` : "아직 인증 전이에요"}
+            </div>
           </div>
-        </div>
+        </Link>
 
         {verificationType === "photo" && (
           <input

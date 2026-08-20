@@ -41,11 +41,24 @@ export default async function RoutineDetailPage({
   // 스트릭/성공률 계산에 쓸 전체 기록 + 화면에 보여줄 최근 기록을 한 번에 가져온다
   const { data: allCheckIns } = await supabase
     .from("check_ins")
-    .select("id, user_id, date, memo, created_at")
+    .select("id, user_id, date, memo, proof_url, created_at")
     .eq("routine_id", id)
     .order("created_at", { ascending: false });
 
   const history = allCheckIns?.slice(0, 10) ?? [];
+
+  // 사진 인증 기록은 proofs가 비공개 버킷이라 서명된 URL을 따로 발급받아야 한다
+  const photoUrlByCheckInId = new Map<string, string>();
+  await Promise.all(
+    history
+      .filter((entry) => entry.proof_url)
+      .map(async (entry) => {
+        const { data } = await supabase.storage
+          .from("proofs")
+          .createSignedUrl(entry.proof_url!, 3600);
+        if (data?.signedUrl) photoUrlByCheckInId.set(entry.id, data.signedUrl);
+      })
+  );
 
   const { currentStreak, longestStreak, successDates } = calculateRoutineStreak(
     allCheckIns ?? [],
@@ -201,6 +214,14 @@ export default async function RoutineDetailPage({
                 {nicknameFor(entry.user_id)} · {new Date(entry.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
               </div>
               <div className="text-xs text-ink-muted">{entry.date}</div>
+              {photoUrlByCheckInId.has(entry.id) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoUrlByCheckInId.get(entry.id)}
+                  alt="인증 사진"
+                  className="mt-2 h-40 w-full rounded-xl object-cover"
+                />
+              )}
               {entry.memo && <div className="mt-1 text-xs text-ink-muted">&ldquo;{entry.memo}&rdquo;</div>}
             </li>
           ))}
