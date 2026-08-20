@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { calculateRoutineStreak, isTargetDay } from "@/lib/streak";
 import LogoutButton from "./LogoutButton";
+import DeleteAccountButton from "./DeleteAccountButton";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -186,7 +187,10 @@ export default async function MyPage() {
         <div className="mb-2">
           <NotificationToggle />
         </div>
-        <LogoutButton />
+        <div className="mb-2">
+          <LogoutButton />
+        </div>
+        <DeleteAccountButton />
       </section>
       <BottomNav />
     </main>
