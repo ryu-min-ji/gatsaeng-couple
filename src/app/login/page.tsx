@@ -1,6 +1,21 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+function LoginError() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  if (!error) return null;
+
+  return (
+    <p className="rounded-xl bg-coral-soft px-4 py-2 text-xs text-coral">
+      로그인에 실패했어요: {error}
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -18,6 +33,10 @@ export default function LoginPage() {
         <h1 className="font-display text-2xl font-bold text-plum dark:text-white">갓생커플</h1>
         <p className="mt-2 text-sm text-ink-muted">로그인하고 파트너와 연결해보세요</p>
       </div>
+
+      <Suspense fallback={null}>
+        <LoginError />
+      </Suspense>
 
       <button
         onClick={signInWithGoogle}
