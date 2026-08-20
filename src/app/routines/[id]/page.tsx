@@ -7,6 +7,9 @@ import CommentThread from "./CommentThread";
 import CalendarGrid, { type DayEntry } from "./CalendarGrid";
 import DeleteRoutineButton from "./DeleteRoutineButton";
 import type { Comment } from "@/lib/types/database";
+import { todayKST } from "@/lib/date";
+
+export const dynamic = "force-dynamic";
 
 export default async function RoutineDetailPage({
   params,
@@ -22,7 +25,7 @@ export default async function RoutineDetailPage({
 
   if (!user) redirect("/login");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
 
   const { data: me } = await supabase
     .from("profiles")

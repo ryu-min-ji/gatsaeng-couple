@@ -9,6 +9,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Frequency, SuccessRule, VerificationType } from "@/lib/types/database";
+import { todayKST } from "@/lib/date";
 
 const verificationOptions: { value: VerificationType; label: string; desc: string }[] = [
   { value: "photo", label: "사진", desc: "인증샷을 찍어서 올려요" },
@@ -77,7 +78,7 @@ export default function RoutineForm(props: Props) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   const initial = mode === "edit" ? props.initialValues : undefined;
   const oneMonthFromToday = (() => {
     const d = new Date(`${today}T00:00:00Z`);

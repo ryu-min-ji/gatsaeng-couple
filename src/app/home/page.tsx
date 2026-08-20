@@ -8,6 +8,9 @@ import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import RoutineTypeIcon from "@/components/RoutineTypeIcon";
 import { cn } from "@/lib/utils";
+import { todayKST } from "@/lib/date";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -18,7 +21,7 @@ export default async function HomePage() {
 
   if (!user) redirect("/login");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
 
   // 내 프로필 + 파트너 프로필
   const { data: me } = await supabase
@@ -125,7 +128,13 @@ export default async function HomePage() {
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted">
-            {new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
+            {new Date().toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "long",
+              timeZone: "Asia/Seoul",
+            })}
           </p>
           <h1 className="font-display text-2xl font-bold text-plum dark:text-white">오늘의 갓생</h1>
         </div>

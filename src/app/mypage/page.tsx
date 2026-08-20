@@ -6,6 +6,9 @@ import LogoutButton from "./LogoutButton";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { todayKST } from "@/lib/date";
+
+export const dynamic = "force-dynamic";
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -16,7 +19,7 @@ export default async function MyPage() {
 
   if (!user) redirect("/login");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   const thisMonthPrefix = today.slice(0, 7); // YYYY-MM
 
   const { data: me } = await supabase
@@ -123,6 +126,17 @@ export default async function MyPage() {
           )}
         </div>
       </header>
+
+      <Link
+        href="/recap"
+        className="mt-6 flex items-center justify-between rounded-card bg-plum p-4 text-white shadow-sm transition hover:opacity-90"
+      >
+        <div>
+          <div className="text-sm font-bold">이번 달 리캡 카드 만들기</div>
+          <div className="mt-0.5 text-xs text-white/70">우리의 갓생을 카드로 남기고 공유해요</div>
+        </div>
+        <span aria-hidden>›</span>
+      </Link>
 
       <section className="mt-6 grid grid-cols-2 gap-3">
         {stats.map((stat) => (
