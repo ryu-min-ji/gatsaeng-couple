@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { isTargetDay } from "@/lib/streak";
-import type { CheckInStatus, Frequency } from "@/lib/types/database";
+import type { CheckInStatus, Frequency, Comment } from "@/lib/types/database";
+import CommentThread from "./CommentThread";
 
 export type DayEntry = {
   id: string;
@@ -12,6 +13,7 @@ export type DayEntry = {
   status: CheckInStatus;
   memo: string | null;
   photoUrl: string | null;
+  comments: Comment[];
 };
 
 type Props = {
@@ -24,6 +26,12 @@ type Props = {
   entriesByDate: Record<string, DayEntry[]>;
   frequency: Frequency;
   frequencyDays: number[] | null;
+  userId: string;
+  meNickname: string;
+  meAvatarUrl: string | null;
+  partnerId: string | null;
+  partnerNickname: string | null;
+  partnerAvatarUrl: string | null;
 };
 
 export default function CalendarGrid({
@@ -36,6 +44,12 @@ export default function CalendarGrid({
   entriesByDate,
   frequency,
   frequencyDays,
+  userId,
+  meNickname,
+  meAvatarUrl,
+  partnerId,
+  partnerNickname,
+  partnerAvatarUrl,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const successSet = new Set(successDates);
@@ -96,9 +110,9 @@ export default function CalendarGrid({
           {selectedEntries.length === 0 ? (
             <p className="text-xs text-ink-muted">이 날은 인증 기록이 없어요.</p>
           ) : (
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-4">
               {selectedEntries.map((entry) => (
-                <li key={entry.id}>
+                <li key={entry.id} className="rounded-xl bg-surface p-3 shadow-sm">
                   <div className="text-xs font-bold">
                     {entry.nickname} · {entry.time}
                   </div>
@@ -119,6 +133,16 @@ export default function CalendarGrid({
                       )}
                     </>
                   )}
+                  <CommentThread
+                    checkInId={entry.id}
+                    userId={userId}
+                    meNickname={meNickname}
+                    meAvatarUrl={meAvatarUrl}
+                    partnerId={partnerId}
+                    partnerNickname={partnerNickname}
+                    partnerAvatarUrl={partnerAvatarUrl}
+                    comments={entry.comments}
+                  />
                 </li>
               ))}
             </ul>

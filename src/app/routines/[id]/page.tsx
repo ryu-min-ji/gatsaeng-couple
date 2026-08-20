@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { calculateRoutineStreak, isTargetDay } from "@/lib/streak";
 import RealtimeRefresher from "@/components/RealtimeRefresher";
-import CommentThread from "./CommentThread";
 import CalendarGrid, { type DayEntry } from "./CalendarGrid";
 import DeleteRoutineButton from "./DeleteRoutineButton";
 import type { Comment } from "@/lib/types/database";
@@ -49,34 +48,60 @@ export default async function RoutineDetailPage({
 
   if (!routine) notFound();
 
-  // 스트릭/성공률 계산에 쓸 전체 기록 + 화면에 보여줄 최근 기록을 한 번에 가져온다
+  function nicknameFor(userId: string) {
+    if (userId === user!.id) return me?.nickname ?? "나";
+    if (userId === partner?.id) return partner.nickname;
+    return "상대방";
+  }
+
+  // 스트릭/성공률 계산에 쓸 전체 기록
   const { data: allCheckIns } = await supabase
     .from("check_ins")
     .select("id, user_id, date, status, memo, proof_url, created_at")
     .eq("routine_id", id)
     .order("created_at", { ascending: false });
 
-  const history = allCheckIns?.slice(0, 10) ?? [];
-  const historyIds = history.map((entry) => entry.id);
+  const todayParts = today.split("-");
+  const todayYear = Number(todayParts[0]);
+  const todayMonth = Number(todayParts[1]);
+  const firstOfMonth = new Date(Date.UTC(todayYear, todayMonth - 1, 1));
+  const daysInMonth = new Date(Date.UTC(todayYear, todayMonth, 0)).getUTCDate();
+  const leadingBlanks = firstOfMonth.getUTCDay(); // 0(일) ~ 6(토)
+
+  const calendarCells: { day: number; date: string }[] = Array.from(
+    { length: daysInMonth },
+    (_, i) => {
+      const day = i + 1;
+      const date = `${todayYear}-${String(todayMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      return { day, date };
+    }
+  );
+
+  // 캘린더에서 날짜를 눌렀을 때 보여줄 이번 달 인증 기록
+  const monthPrefix = `${todayYear}-${String(todayMonth).padStart(2, "0")}`;
+  const monthCheckIns = (allCheckIns ?? []).filter((c) => c.date.startsWith(monthPrefix));
+  const monthCheckInIds = monthCheckIns.map((c) => c.id);
 
   const { data: comments } =
-    historyIds.length > 0
+    monthCheckInIds.length > 0
       ? await supabase
           .from("comments")
           .select("id, check_in_id, author_id, body, attachment_url, attachment_type, created_at")
-          .in("check_in_id", historyIds)
+          .in("check_in_id", monthCheckInIds)
           .order("created_at", { ascending: true })
       : { data: [] as Comment[] };
 
-  // 댓글 첨부(사진/음성)도 proofs가 비공개 버킷이라 서명된 URL이 필요하다
-  const signedAttachmentByCommentId = new Map<string, string>();
+  // 인증 사진 + 댓글 첨부(사진/음성) 모두 proofs가 비공개 버킷이라 서명된 URL이 필요하다
+  const signedUrlByPath = new Map<string, string>();
+  const pathsToSign = new Set<string>();
+  for (const entry of monthCheckIns) if (entry.proof_url) pathsToSign.add(entry.proof_url);
+  for (const c of comments ?? []) if (c.attachment_url) pathsToSign.add(c.attachment_url);
+
   await Promise.all(
-    (comments ?? [])
-      .filter((c) => c.attachment_url)
-      .map(async (c) => {
-        const { data } = await supabase.storage.from("proofs").createSignedUrl(c.attachment_url!, 3600);
-        if (data?.signedUrl) signedAttachmentByCommentId.set(c.id, data.signedUrl);
-      })
+    [...pathsToSign].map(async (path) => {
+      const { data } = await supabase.storage.from("proofs").createSignedUrl(path, 3600);
+      if (data?.signedUrl) signedUrlByPath.set(path, data.signedUrl);
+    })
   );
 
   const commentsByCheckIn = new Map<string, Comment[]>();
@@ -84,25 +109,12 @@ export default async function RoutineDetailPage({
     const resolved: Comment = {
       ...comment,
       attachment_url: comment.attachment_url
-        ? (signedAttachmentByCommentId.get(comment.id) ?? null)
+        ? (signedUrlByPath.get(comment.attachment_url) ?? null)
         : null,
     };
     if (!commentsByCheckIn.has(comment.check_in_id)) commentsByCheckIn.set(comment.check_in_id, []);
     commentsByCheckIn.get(comment.check_in_id)!.push(resolved);
   }
-
-  // 사진 인증 기록은 proofs가 비공개 버킷이라 서명된 URL을 따로 발급받아야 한다
-  const photoUrlByCheckInId = new Map<string, string>();
-  await Promise.all(
-    history
-      .filter((entry) => entry.proof_url)
-      .map(async (entry) => {
-        const { data } = await supabase.storage
-          .from("proofs")
-          .createSignedUrl(entry.proof_url!, 3600);
-        if (data?.signedUrl) photoUrlByCheckInId.set(entry.id, data.signedUrl);
-      })
-  );
 
   const { currentStreak, longestStreak, successDates } = calculateRoutineStreak(
     allCheckIns ?? [],
@@ -140,55 +152,21 @@ export default async function RoutineDetailPage({
   const myRate = successRate(user.id);
   const partnerRate = partner ? successRate(partner.id) : null;
 
-  function nicknameFor(userId: string) {
-    if (userId === user!.id) return me?.nickname ?? "나";
-    if (userId === partner?.id) return partner.nickname;
-    return "상대방";
-  }
-
-  const todayParts = today.split("-");
-  const todayYear = Number(todayParts[0]);
-  const todayMonth = Number(todayParts[1]);
-  const firstOfMonth = new Date(Date.UTC(todayYear, todayMonth - 1, 1));
-  const daysInMonth = new Date(Date.UTC(todayYear, todayMonth, 0)).getUTCDate();
-  const leadingBlanks = firstOfMonth.getUTCDay(); // 0(일) ~ 6(토)
-
-  const calendarCells: { day: number; date: string }[] = Array.from(
-    { length: daysInMonth },
-    (_, i) => {
-      const day = i + 1;
-      const date = `${todayYear}-${String(todayMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      return { day, date };
-    }
-  );
-
-  // 캘린더에서 날짜를 눌렀을 때 보여줄 그날의 인증 기록(이번 달 전체 대상,
-  // history는 최근 10건뿐이라 이번 달인데도 빠질 수 있어서 따로 모은다)
-  const monthPrefix = `${todayYear}-${String(todayMonth).padStart(2, "0")}`;
-  const monthCheckIns = (allCheckIns ?? []).filter((c) => c.date.startsWith(monthPrefix));
-
-  const monthPhotoUrlByCheckInId = new Map(photoUrlByCheckInId);
-  await Promise.all(
-    monthCheckIns
-      .filter((entry) => entry.proof_url && !monthPhotoUrlByCheckInId.has(entry.id))
-      .map(async (entry) => {
-        const { data } = await supabase.storage
-          .from("proofs")
-          .createSignedUrl(entry.proof_url!, 3600);
-        if (data?.signedUrl) monthPhotoUrlByCheckInId.set(entry.id, data.signedUrl);
-      })
-  );
-
   const entriesByDate: Record<string, DayEntry[]> = {};
   for (const entry of [...monthCheckIns].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
     const dateEntries = entriesByDate[entry.date] ?? (entriesByDate[entry.date] = []);
     dateEntries.push({
       id: entry.id,
       nickname: nicknameFor(entry.user_id),
-      time: new Date(entry.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+      time: new Date(entry.created_at).toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Seoul",
+      }),
       status: entry.status,
       memo: entry.memo,
-      photoUrl: monthPhotoUrlByCheckInId.get(entry.id) ?? null,
+      photoUrl: entry.proof_url ? (signedUrlByPath.get(entry.proof_url) ?? null) : null,
+      comments: commentsByCheckIn.get(entry.id) ?? [],
     });
   }
 
@@ -266,6 +244,9 @@ export default async function RoutineDetailPage({
       </section>
 
       <section className="mt-4 rounded-card bg-surface p-4 shadow-sm">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+          날짜를 눌러서 그날의 인증 기록을 확인해요
+        </h2>
         <CalendarGrid
           year={todayYear}
           month={todayMonth}
@@ -276,53 +257,13 @@ export default async function RoutineDetailPage({
           entriesByDate={entriesByDate}
           frequency={routine.frequency}
           frequencyDays={routine.frequency_days}
+          userId={user.id}
+          meNickname={me?.nickname ?? "나"}
+          meAvatarUrl={me?.avatar_url ?? null}
+          partnerId={partner?.id ?? null}
+          partnerNickname={partner?.nickname ?? null}
+          partnerAvatarUrl={partner?.avatar_url ?? null}
         />
-      </section>
-
-      <section className="mt-6">
-        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">최근 인증 기록</h2>
-        <ul className="flex flex-col gap-2">
-          {history.map((entry) => (
-            <li key={entry.id} className="rounded-2xl bg-surface p-4 shadow-sm">
-              <div className="text-sm font-bold">
-                {nicknameFor(entry.user_id)} · {new Date(entry.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
-              </div>
-              <div className="text-xs text-ink-muted">{entry.date}</div>
-              {entry.status === "failed" ? (
-                <div className="mt-1 text-xs font-bold text-ink-muted">오늘은 실패했어요</div>
-              ) : (
-                <>
-                  {photoUrlByCheckInId.has(entry.id) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoUrlByCheckInId.get(entry.id)}
-                      alt="인증 사진"
-                      className="mt-2 h-40 w-full rounded-xl object-cover"
-                    />
-                  )}
-                  {entry.memo && (
-                    <div className="mt-1 text-xs text-ink-muted">&ldquo;{entry.memo}&rdquo;</div>
-                  )}
-                </>
-              )}
-              <CommentThread
-                checkInId={entry.id}
-                userId={user.id}
-                meNickname={me?.nickname ?? "나"}
-                meAvatarUrl={me?.avatar_url ?? null}
-                partnerId={partner?.id ?? null}
-                partnerNickname={partner?.nickname ?? null}
-                partnerAvatarUrl={partner?.avatar_url ?? null}
-                comments={commentsByCheckIn.get(entry.id) ?? []}
-              />
-            </li>
-          ))}
-          {history.length === 0 && (
-            <li className="rounded-2xl bg-surface p-4 text-center text-sm text-ink-muted shadow-sm">
-              아직 인증 기록이 없어요.
-            </li>
-          )}
-        </ul>
       </section>
 
       {routine.penalty_text && bothFailedYesterday && (
