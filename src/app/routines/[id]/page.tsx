@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { calculateRoutineStreak } from "@/lib/streak";
+import { cn } from "@/lib/utils";
 
 export default async function RoutineDetailPage({
   params,
@@ -45,7 +46,7 @@ export default async function RoutineDetailPage({
 
   const history = allCheckIns?.slice(0, 10) ?? [];
 
-  const { currentStreak, longestStreak } = calculateRoutineStreak(
+  const { currentStreak, longestStreak, successDates } = calculateRoutineStreak(
     allCheckIns ?? [],
     routine.success_rule,
     user.id,
@@ -68,6 +69,22 @@ export default async function RoutineDetailPage({
 
   const myRate = successRate(user.id);
   const partnerRate = partner ? successRate(partner.id) : null;
+
+  const todayParts = today.split("-");
+  const todayYear = Number(todayParts[0]);
+  const todayMonth = Number(todayParts[1]);
+  const firstOfMonth = new Date(Date.UTC(todayYear, todayMonth - 1, 1));
+  const daysInMonth = new Date(Date.UTC(todayYear, todayMonth, 0)).getUTCDate();
+  const leadingBlanks = firstOfMonth.getUTCDay(); // 0(일) ~ 6(토)
+
+  const calendarCells: { day: number; date: string }[] = Array.from(
+    { length: daysInMonth },
+    (_, i) => {
+      const day = i + 1;
+      const date = `${todayYear}-${String(todayMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      return { day, date };
+    }
+  );
 
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
@@ -109,6 +126,44 @@ export default async function RoutineDetailPage({
         </div>
       </section>
 
+      <section className="mt-4 rounded-card bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-ink-muted">
+            {todayYear}년 {todayMonth}월
+          </h2>
+          <span className="text-xs text-ink-muted">성공한 날 ♥</span>
+        </div>
+        <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] text-ink-muted">
+          {["일", "월", "화", "수", "목", "금", "토"].map((label) => (
+            <div key={label} className="pb-1">
+              {label}
+            </div>
+          ))}
+          {Array.from({ length: leadingBlanks }).map((_, i) => (
+            <div key={`blank-${i}`} />
+          ))}
+          {calendarCells.map(({ day, date }) => {
+            const isSuccess = successDates.has(date);
+            const isFuture = date > today;
+            const isToday = date === today;
+            return (
+              <div
+                key={date}
+                className={cn(
+                  "flex aspect-square items-center justify-center rounded-full text-xs font-bold",
+                  isSuccess && "bg-coral text-white",
+                  !isSuccess && !isFuture && "bg-coral-soft/60 text-ink-muted",
+                  isFuture && "text-border",
+                  isToday && !isSuccess && "border-2 border-coral"
+                )}
+              >
+                {day}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="mt-6">
         <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">최근 인증 기록</h2>
         <ul className="flex flex-col gap-2">
@@ -127,8 +182,6 @@ export default async function RoutineDetailPage({
           )}
         </ul>
       </section>
-
-      {/* TODO: 캘린더 뷰 — 최근 30~35일치 날짜별 성공 여부를 그리드로 렌더링 */}
     </main>
   );
 }
