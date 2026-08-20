@@ -5,11 +5,25 @@
 :root {
   --font-fraunces: "Fraunces", Georgia, serif;
   --font-noto-kr: "Noto Sans KR", system-ui, sans-serif;
+
+  --color-bg: #fbf4ef;
+  --color-surface: #ffffff;
+  --color-ink: #2b2130;
+  --color-ink-muted: #8b7a8f;
+  --color-border: #efe4e8;
+}
+
+.dark {
+  --color-bg: #221a22;
+  --color-surface: #2e2230;
+  --color-ink: #f2e9ee;
+  --color-ink-muted: #b29cb8;
+  --color-border: #3d2e3f;
 }
 
 body {
-  background-color: #fbf4ef;
-  color: #2b2130;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
 }
 
 /* 커플 성공률 바 등 숫자 정렬용 */

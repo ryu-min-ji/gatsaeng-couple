@@ -26,7 +26,7 @@ const config: Record<VerificationType, { bg: string; fg: string; icon: React.Rea
   },
   check: {
     bg: "bg-plum/10",
-    fg: "text-plum",
+    fg: "text-plum dark:text-white",
     icon: (
       <>
         <circle cx="10" cy="10" r="7" />

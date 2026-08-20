@@ -98,7 +98,7 @@ export default function ProfileSetupPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-6 pb-10 pt-16 text-center">
-      <h1 className="font-display text-2xl font-bold leading-snug text-plum">
+      <h1 className="font-display text-2xl font-bold leading-snug text-plum dark:text-white">
         나를 소개해주세요
       </h1>
       <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-ink-muted">

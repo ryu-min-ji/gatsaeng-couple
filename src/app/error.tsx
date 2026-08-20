@@ -9,7 +9,7 @@ export default function ErrorPage({
 }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="font-display text-2xl font-bold text-plum">문제가 생겼어요</h1>
+      <h1 className="font-display text-2xl font-bold text-plum dark:text-white">문제가 생겼어요</h1>
       <p className="text-sm text-ink-muted">
         {error.message || "알 수 없는 오류가 발생했어요. 다시 시도해주세요."}
       </p>

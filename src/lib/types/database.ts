@@ -8,6 +8,9 @@
 
 export type VerificationType = "photo" | "text" | "check";
 export type SuccessRule = "both" | "either";
+export type CheckInStatus = "success" | "failed";
+export type Frequency = "daily" | "weekdays" | "weekends" | "custom";
+export type AttachmentType = "image" | "audio";
 
 export type Profile = {
   id: string;
@@ -24,9 +27,12 @@ export type Routine = {
   title: string;
   verification_type: VerificationType;
   success_rule: SuccessRule;
+  frequency: Frequency;
+  frequency_days: number[] | null;
   start_date: string;
   end_date: string | null;
   penalty_text: string | null;
+  assignee_id: string | null;
   created_by: string;
   created_at: string;
 };
@@ -36,8 +42,19 @@ export type CheckIn = {
   routine_id: string;
   user_id: string;
   date: string;
+  status: CheckInStatus;
   proof_url: string | null;
   memo: string | null;
+  created_at: string;
+};
+
+export type Comment = {
+  id: string;
+  check_in_id: string;
+  author_id: string;
+  body: string | null;
+  attachment_url: string | null;
+  attachment_type: AttachmentType | null;
   created_at: string;
 };
 
@@ -64,6 +81,12 @@ export type Database = {
         Row: CheckIn;
         Insert: Partial<CheckIn> & { routine_id: string; user_id: string };
         Update: Partial<CheckIn>;
+        Relationships: [];
+      };
+      comments: {
+        Row: Comment;
+        Insert: Partial<Comment> & { check_in_id: string; author_id: string };
+        Update: Partial<Comment>;
         Relationships: [];
       };
     };

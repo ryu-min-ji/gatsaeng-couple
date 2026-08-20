@@ -82,7 +82,7 @@ export default function ConnectPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-6 pb-10 pt-16 text-center">
       <HeartBadge />
-      <h1 className="mt-4 font-display text-2xl font-bold leading-snug text-plum">
+      <h1 className="mt-4 font-display text-2xl font-bold leading-snug text-plum dark:text-white">
         혼자 하지 말고,
         <br />
         같이 갓생 살자
@@ -91,7 +91,7 @@ export default function ConnectPage() {
         파트너를 초대하고 오늘부터 같이 루틴을 인증해보세요
       </p>
 
-      <section className="mt-8 w-full rounded-card bg-white p-6 shadow-sm">
+      <section className="mt-8 w-full rounded-card bg-surface p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="text-left text-xs font-bold tracking-wide text-ink-muted">내 초대코드</div>
           <button
@@ -139,7 +139,7 @@ export default function ConnectPage() {
         <button
           onClick={handleConnect}
           disabled={loading || partnerCode.trim().length === 0}
-          className="mt-3 w-full rounded-xl border border-plum py-3 text-sm font-bold text-plum transition hover:bg-plum hover:text-white disabled:opacity-40"
+          className="mt-3 w-full rounded-xl border border-plum py-3 text-sm font-bold text-plum transition hover:bg-plum hover:text-white disabled:opacity-40 dark:border-white dark:text-white"
         >
           {loading ? "연결하는 중..." : "연결하기"}
         </button>

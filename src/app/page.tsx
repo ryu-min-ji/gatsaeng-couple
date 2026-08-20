@@ -5,7 +5,7 @@ export default function LandingPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 px-6 text-center">
       <HeartBadge />
-      <h1 className="font-display text-3xl font-bold leading-snug text-plum">
+      <h1 className="font-display text-3xl font-bold leading-snug text-plum dark:text-white">
         혼자 하지 말고,
         <br />
         같이 갓생 살자
