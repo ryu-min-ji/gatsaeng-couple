@@ -122,6 +122,7 @@ create table public.routines (
   success_rule      text not null default 'both' check (success_rule in ('both', 'either')),
   start_date        date not null default current_date,
   end_date          date,
+  penalty_text      text,
   created_by        uuid not null references public.profiles(id) on delete cascade,
   created_at        timestamptz not null default now()
 );

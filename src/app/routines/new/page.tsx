@@ -28,6 +28,7 @@ const routineSchema = z
     success_rule: z.enum(["both", "either"]),
     start_date: z.string().min(1, "시작일을 선택해주세요"),
     end_date: z.string().optional(),
+    penalty_text: z.string().trim().max(100, "100자 이내로 입력해주세요").optional(),
   })
   .refine((data) => !data.end_date || data.end_date >= data.start_date, {
     message: "종료일은 시작일 이후여야 해요",
@@ -56,6 +57,7 @@ export default function NewRoutinePage() {
       success_rule: "both",
       start_date: today,
       end_date: "",
+      penalty_text: "",
     },
   });
 
@@ -77,6 +79,7 @@ export default function NewRoutinePage() {
       success_rule: values.success_rule,
       start_date: values.start_date,
       end_date: values.end_date ? values.end_date : null,
+      penalty_text: values.penalty_text?.trim() ? values.penalty_text.trim() : null,
       created_by: user.id,
     });
 
@@ -170,6 +173,22 @@ export default function NewRoutinePage() {
               </div>
             )}
           />
+        </div>
+
+        <div>
+          <label htmlFor="penalty_text" className="text-xs font-bold tracking-wide text-ink-muted">
+            벌칙 문구 (선택)
+          </label>
+          <input
+            id="penalty_text"
+            {...register("penalty_text")}
+            placeholder="예: 오늘 데이트 코스 결정권은 상대에게"
+            className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-coral"
+          />
+          <p className="mt-2 text-xs text-ink-muted">
+            둘 다 인증을 안 한 날, 루틴 상세 화면에 이 문구가 노출돼요.
+          </p>
+          {errors.penalty_text && <p className="mt-2 text-xs text-coral">{errors.penalty_text.message}</p>}
         </div>
 
         <div className="flex gap-3">

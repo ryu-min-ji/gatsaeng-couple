@@ -31,7 +31,7 @@ export default async function RoutineDetailPage({
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, title, success_rule, start_date")
+    .select("id, title, success_rule, start_date, penalty_text")
     .eq("id", id)
     .single();
 
@@ -85,6 +85,20 @@ export default async function RoutineDetailPage({
       return { day, date };
     }
   );
+
+  // 어제 둘 다(파트너가 있다면 파트너도) 인증을 하나도 안 했으면 벌칙 노출.
+  // 오늘은 아직 하루가 끝나지 않았으니 "실패"로 판정하지 않는다.
+  const yesterdayDate = new Date(`${today}T00:00:00Z`);
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterday = yesterdayDate.toISOString().slice(0, 10);
+
+  const yesterdayCheckedInUserIds = new Set(
+    (allCheckIns ?? []).filter((c) => c.date === yesterday).map((c) => c.user_id)
+  );
+  const bothFailedYesterday =
+    routine.start_date <= yesterday &&
+    !yesterdayCheckedInUserIds.has(user.id) &&
+    (!partner || !yesterdayCheckedInUserIds.has(partner.id));
 
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
@@ -182,6 +196,13 @@ export default async function RoutineDetailPage({
           )}
         </ul>
       </section>
+
+      {routine.penalty_text && bothFailedYesterday && (
+        <section className="mt-6 rounded-2xl border border-amber bg-amber-soft p-4">
+          <div className="text-xs font-bold text-plum">⚠️ 오늘의 벌칙</div>
+          <p className="mt-1 text-sm text-plum">{routine.penalty_text}</p>
+        </section>
+      )}
     </main>
   );
 }

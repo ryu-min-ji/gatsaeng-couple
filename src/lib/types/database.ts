@@ -25,6 +25,7 @@ export type Routine = {
   success_rule: SuccessRule;
   start_date: string;
   end_date: string | null;
+  penalty_text: string | null;
   created_by: string;
   created_at: string;
 };
