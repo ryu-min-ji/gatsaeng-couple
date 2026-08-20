@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import CoupleBadge from "@/components/CoupleBadge";
 
 function LoginError() {
   const searchParams = useSearchParams();
@@ -29,6 +30,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-8 px-6 text-center">
+      <CoupleBadge />
       <div>
         <h1 className="font-display text-2xl font-bold text-plum dark:text-white">갓생커플</h1>
         <p className="mt-2 text-sm text-ink-muted">로그인하고 파트너와 연결해보세요</p>
