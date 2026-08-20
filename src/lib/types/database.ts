@@ -10,6 +10,7 @@ export type VerificationType = "photo" | "text" | "check";
 export type SuccessRule = "both" | "either";
 export type CheckInStatus = "success" | "failed";
 export type Frequency = "daily" | "weekdays" | "weekends" | "custom";
+export type AttachmentType = "image" | "audio";
 
 export type Profile = {
   id: string;
@@ -51,7 +52,9 @@ export type Comment = {
   id: string;
   check_in_id: string;
   author_id: string;
-  body: string;
+  body: string | null;
+  attachment_url: string | null;
+  attachment_type: AttachmentType | null;
   created_at: string;
 };
 
@@ -82,7 +85,7 @@ export type Database = {
       };
       comments: {
         Row: Comment;
-        Insert: Partial<Comment> & { check_in_id: string; author_id: string; body: string };
+        Insert: Partial<Comment> & { check_in_id: string; author_id: string };
         Update: Partial<Comment>;
         Relationships: [];
       };

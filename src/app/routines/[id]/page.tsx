@@ -63,15 +63,32 @@ export default async function RoutineDetailPage({
     historyIds.length > 0
       ? await supabase
           .from("comments")
-          .select("id, check_in_id, author_id, body, created_at")
+          .select("id, check_in_id, author_id, body, attachment_url, attachment_type, created_at")
           .in("check_in_id", historyIds)
           .order("created_at", { ascending: true })
       : { data: [] as Comment[] };
 
+  // 댓글 첨부(사진/음성)도 proofs가 비공개 버킷이라 서명된 URL이 필요하다
+  const signedAttachmentByCommentId = new Map<string, string>();
+  await Promise.all(
+    (comments ?? [])
+      .filter((c) => c.attachment_url)
+      .map(async (c) => {
+        const { data } = await supabase.storage.from("proofs").createSignedUrl(c.attachment_url!, 3600);
+        if (data?.signedUrl) signedAttachmentByCommentId.set(c.id, data.signedUrl);
+      })
+  );
+
   const commentsByCheckIn = new Map<string, Comment[]>();
   for (const comment of comments ?? []) {
+    const resolved: Comment = {
+      ...comment,
+      attachment_url: comment.attachment_url
+        ? (signedAttachmentByCommentId.get(comment.id) ?? null)
+        : null,
+    };
     if (!commentsByCheckIn.has(comment.check_in_id)) commentsByCheckIn.set(comment.check_in_id, []);
-    commentsByCheckIn.get(comment.check_in_id)!.push(comment);
+    commentsByCheckIn.get(comment.check_in_id)!.push(resolved);
   }
 
   // 사진 인증 기록은 proofs가 비공개 버킷이라 서명된 URL을 따로 발급받아야 한다

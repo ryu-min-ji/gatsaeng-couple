@@ -286,13 +286,21 @@ create policy "avatars_update_self"
 -- -------------------------------------------------------------
 -- 10. comments — 체크인에 파트너가 남기는 댓글(응원/반응)
 --     같은 커플(체크인 작성자 본인 또는 그 파트너)만 조회·작성 가능.
+--     사진/음성 첨부는 proofs 버킷을 그대로 재사용한다
+--     (경로 규칙: {user_id}/comments/{uuid}.{ext}, proofs_select_couple/
+--     proofs_insert_self 정책이 첫 폴더 세그먼트만 검사하므로 그대로 적용됨).
 -- -------------------------------------------------------------
 create table public.comments (
-  id          uuid primary key default gen_random_uuid(),
-  check_in_id uuid not null references public.check_ins(id) on delete cascade,
-  author_id   uuid not null references public.profiles(id) on delete cascade,
-  body        text not null,
-  created_at  timestamptz not null default now()
+  id              uuid primary key default gen_random_uuid(),
+  check_in_id     uuid not null references public.check_ins(id) on delete cascade,
+  author_id       uuid not null references public.profiles(id) on delete cascade,
+  body            text,
+  attachment_url  text,
+  attachment_type text check (attachment_type in ('image', 'audio')),
+  created_at      timestamptz not null default now(),
+  constraint comments_has_content check (
+    (body is not null and length(trim(body)) > 0) or attachment_url is not null
+  )
 );
 
 alter table public.comments enable row level security;
