@@ -5,6 +5,7 @@ import CheckInItem from "./CheckInItem";
 import RealtimeRefresher from "./RealtimeRefresher";
 import { calculateRoutineStreak } from "@/lib/streak";
 import BottomNav from "@/components/BottomNav";
+import Avatar from "@/components/Avatar";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -20,12 +21,16 @@ export default async function HomePage() {
   // 내 프로필 + 파트너 프로필
   const { data: me } = await supabase
     .from("profiles")
-    .select("id, nickname, partner_id")
+    .select("id, nickname, partner_id, avatar_url")
     .eq("id", user.id)
     .single();
 
   const { data: partner } = me?.partner_id
-    ? await supabase.from("profiles").select("id, nickname").eq("id", me.partner_id).single()
+    ? await supabase
+        .from("profiles")
+        .select("id, nickname, avatar_url")
+        .eq("id", me.partner_id)
+        .single()
     : { data: null };
 
   // 오늘의 루틴 (본인이 만든 것 + 파트너가 만든 것, RLS가 커플 범위로 걸러줌)
@@ -115,9 +120,7 @@ export default async function HomePage() {
 
       <section className="mt-4 flex rounded-card bg-white p-4 shadow-sm">
         <div className="flex flex-1 flex-col items-center gap-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-coral font-bold text-white">
-            {me?.nickname?.[0] ?? "?"}
-          </div>
+          <Avatar avatarUrl={me?.avatar_url} nickname={me?.nickname ?? "나"} bg="coral" />
           <div className="text-sm font-bold">{me?.nickname ?? "나"}</div>
           <span
             className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
@@ -129,9 +132,7 @@ export default async function HomePage() {
         </div>
         <div className="w-px bg-border" />
         <div className="flex flex-1 flex-col items-center gap-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-plum font-bold text-white">
-            {partner?.nickname?.[0] ?? "?"}
-          </div>
+          <Avatar avatarUrl={partner?.avatar_url} nickname={partner?.nickname} bg="plum" />
           <div className="text-sm font-bold">{partner?.nickname ?? "파트너 대기중"}</div>
           {partner && (
             <span

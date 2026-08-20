@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import HeartBadge from "@/components/HeartBadge";
 
@@ -143,6 +144,10 @@ export default function ConnectPage() {
           {loading ? "연결하는 중..." : "연결하기"}
         </button>
       </div>
+
+      <Link href="/home" className="mt-6 text-xs font-bold text-ink-muted underline">
+        나중에 연결할게요 · 먼저 둘러보기
+      </Link>
     </main>
   );
 }

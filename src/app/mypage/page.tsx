@@ -4,6 +4,7 @@ import Link from "next/link";
 import { calculateRoutineStreak } from "@/lib/streak";
 import LogoutButton from "./LogoutButton";
 import BottomNav from "@/components/BottomNav";
+import Avatar from "@/components/Avatar";
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function MyPage() {
 
   const { data: me } = await supabase
     .from("profiles")
-    .select("nickname, partner_id, connected_at")
+    .select("nickname, partner_id, connected_at, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -31,7 +32,7 @@ export default async function MyPage() {
     : null;
 
   const { data: partner } = me?.partner_id
-    ? await supabase.from("profiles").select("nickname").eq("id", me.partner_id).single()
+    ? await supabase.from("profiles").select("nickname, avatar_url").eq("id", me.partner_id).single()
     : { data: null };
 
   const { data: routines } = await supabase
@@ -92,12 +93,18 @@ export default async function MyPage() {
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
       <header className="flex items-center gap-3">
         <div className="flex">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-bg bg-coral font-bold text-white">
-            {me?.nickname?.[0] ?? "?"}
-          </div>
-          <div className="-ml-3 flex h-11 w-11 items-center justify-center rounded-full border-2 border-bg bg-plum font-bold text-white">
-            {partner?.nickname?.[0] ?? "?"}
-          </div>
+          <Avatar
+            avatarUrl={me?.avatar_url}
+            nickname={me?.nickname}
+            bg="coral"
+            className="h-11 w-11 border-2 border-bg"
+          />
+          <Avatar
+            avatarUrl={partner?.avatar_url}
+            nickname={partner?.nickname}
+            bg="plum"
+            className="-ml-3 h-11 w-11 border-2 border-bg"
+          />
         </div>
         <div>
           <h1 className="font-display text-lg font-bold text-plum">
@@ -144,6 +151,12 @@ export default async function MyPage() {
 
       <section className="mt-6">
         <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">설정</h2>
+        <Link
+          href="/profile/setup"
+          className="mb-2 block rounded-2xl bg-white p-4 text-left text-sm font-bold text-plum shadow-sm transition hover:bg-plum/5"
+        >
+          프로필 수정
+        </Link>
         <LogoutButton />
       </section>
       <BottomNav />
