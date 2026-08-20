@@ -8,6 +8,7 @@ import { calculateRoutineStreak } from "@/lib/streak";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import RoutineTypeIcon from "@/components/RoutineTypeIcon";
+import CoupleBadge from "@/components/CoupleBadge";
 import { cn } from "@/lib/utils";
 import { todayKST } from "@/lib/date";
 
@@ -208,7 +209,8 @@ export default async function HomePage() {
             />
           ))}
           {sharedRoutines.length === 0 && (
-            <li className="rounded-2xl bg-surface p-4 text-center text-sm text-ink-muted shadow-sm">
+            <li className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-6 text-center text-sm text-ink-muted shadow-sm">
+              <CoupleBadge size="md" />
               아직 공동 루틴이 없어요.
             </li>
           )}

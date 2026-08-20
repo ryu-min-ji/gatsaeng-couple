@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import HeartBadge from "@/components/HeartBadge";
+import CoupleBadge from "@/components/CoupleBadge";
 
 export default function ConnectPage() {
   const supabase = createClient();
@@ -81,7 +81,7 @@ export default function ConnectPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-6 pb-10 pt-16 text-center">
-      <HeartBadge />
+      <CoupleBadge />
       <h1 className="mt-4 font-display text-2xl font-bold leading-snug text-plum dark:text-white">
         혼자 하지 말고,
         <br />

@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationToggle from "@/components/NotificationToggle";
+import CoupleBadge from "@/components/CoupleBadge";
 import { todayKST } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -166,7 +167,8 @@ export default async function MyPage() {
             </li>
           ))}
           {(!routines || routines.length === 0) && (
-            <li className="rounded-2xl bg-surface p-4 text-center text-sm text-ink-muted shadow-sm">
+            <li className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-6 text-center text-sm text-ink-muted shadow-sm">
+              <CoupleBadge size="md" />
               아직 만든 루틴이 없어요.
             </li>
           )}
