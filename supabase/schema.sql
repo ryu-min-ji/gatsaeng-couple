@@ -26,7 +26,7 @@ create policy "profiles_select_self_or_partner"
   on public.profiles for select
   using (
     id = auth.uid()
-    or id = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or id = public.get_my_partner_id()
   );
 
 -- 자신의 프로필만 수정 가능
@@ -38,6 +38,21 @@ create policy "profiles_update_self"
 create policy "profiles_insert_self"
   on public.profiles for insert
   with check (id = auth.uid());
+
+-- 파트너 id 조회용 security definer 함수.
+-- RLS 정책 안에서 partner_id를 얻으려고 profiles를 직접 서브쿼리하면,
+-- 그 서브쿼리도 같은 정책의 적용을 받아 정책 평가가 자기 자신을 다시
+-- 트리거하는 무한 재귀(Postgres 42P17)에 빠진다. security definer로
+-- 감싸면 이 함수 내부의 조회는 RLS를 우회해서 재귀 없이 끝난다.
+create or replace function public.get_my_partner_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select partner_id from public.profiles where id = auth.uid()
+$$;
 
 
 -- -------------------------------------------------------------
@@ -118,7 +133,7 @@ create policy "routines_select_couple"
   on public.routines for select
   using (
     created_by = auth.uid()
-    or created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or created_by = public.get_my_partner_id()
   );
 
 create policy "routines_insert_self"
@@ -129,7 +144,7 @@ create policy "routines_update_couple"
   on public.routines for update
   using (
     created_by = auth.uid()
-    or created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or created_by = public.get_my_partner_id()
   );
 
 create policy "routines_delete_owner"
@@ -158,7 +173,7 @@ create policy "check_ins_select_couple"
   on public.check_ins for select
   using (
     user_id = auth.uid()
-    or user_id = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or user_id = public.get_my_partner_id()
   );
 
 -- 본인 명의로만, 그리고 자신이 속한 커플의 루틴에만 인증 가능
@@ -171,7 +186,7 @@ create policy "check_ins_insert_self"
       where r.id = routine_id
         and (
           r.created_by = auth.uid()
-          or r.created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+          or r.created_by = public.get_my_partner_id()
         )
     )
   );
@@ -205,9 +220,7 @@ create index idx_check_ins_user_date on public.check_ins(user_id, date);
 --     bucket_id = 'proofs'
 --     and (
 --       (storage.foldername(name))[1] = auth.uid()::text
---       or (storage.foldername(name))[1] = (
---         select p.partner_id::text from public.profiles p where p.id = auth.uid()
---       )
+--       or (storage.foldername(name))[1] = public.get_my_partner_id()::text
 --     )
 --   );
 --
