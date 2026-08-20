@@ -13,6 +13,7 @@ type Props = {
   userId: string;
   today: string;
   checkedIn: boolean;
+  currentStreak: number;
 };
 
 export default function CheckInItem({
@@ -22,6 +23,7 @@ export default function CheckInItem({
   userId,
   today,
   checkedIn,
+  currentStreak,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -93,7 +95,12 @@ export default function CheckInItem({
   return (
     <li className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="flex-1 text-sm font-bold">{title}</span>
+        <div className="flex-1">
+          <div className="text-sm font-bold">{title}</div>
+          <div className="mt-0.5 text-xs text-ink-muted">
+            {currentStreak > 0 ? `${currentStreak}일 연속 성공` : "아직 인증 전이에요"}
+          </div>
+        </div>
 
         {verificationType === "photo" && (
           <input

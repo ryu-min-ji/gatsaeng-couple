@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CheckInItem from "./CheckInItem";
+import { calculateRoutineStreak } from "@/lib/streak";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -28,17 +29,45 @@ export default async function HomePage() {
   // 오늘의 루틴 (본인이 만든 것 + 파트너가 만든 것, RLS가 커플 범위로 걸러줌)
   const { data: routines } = await supabase
     .from("routines")
-    .select("id, title, verification_type")
+    .select("id, title, verification_type, success_rule")
     .order("created_at", { ascending: true });
 
-  // 오늘 인증 여부 (본인/파트너)
-  const { data: todayCheckIns } = await supabase
-    .from("check_ins")
-    .select("routine_id, user_id")
-    .eq("date", today);
+  const routineIds = routines?.map((r) => r.id) ?? [];
+
+  // 스트릭 계산용 최근 90일 인증 기록 (오늘 인증 여부도 여기서 같이 판단)
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setUTCDate(ninetyDaysAgo.getUTCDate() - 90);
+  const { data: recentCheckIns } =
+    routineIds.length > 0
+      ? await supabase
+          .from("check_ins")
+          .select("routine_id, user_id, date")
+          .in("routine_id", routineIds)
+          .gte("date", ninetyDaysAgo.toISOString().slice(0, 10))
+      : { data: [] };
+
+  const streaksByRoutine = new Map(
+    routines?.map((routine) => [
+      routine.id,
+      calculateRoutineStreak(
+        (recentCheckIns ?? []).filter((c) => c.routine_id === routine.id),
+        routine.success_rule,
+        user.id,
+        me?.partner_id ?? null,
+        today
+      ),
+    ])
+  );
+
+  const overallStreak = Math.max(
+    0,
+    ...[...streaksByRoutine.values()].map((s) => s.currentStreak)
+  );
 
   const didICheckInToday = (routineId: string) =>
-    todayCheckIns?.some((c) => c.routine_id === routineId && c.user_id === user.id) ?? false;
+    recentCheckIns?.some(
+      (c) => c.routine_id === routineId && c.user_id === user.id && c.date === today
+    ) ?? false;
 
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
@@ -49,7 +78,11 @@ export default async function HomePage() {
           </p>
           <h1 className="font-display text-2xl font-bold text-plum">오늘의 갓생</h1>
         </div>
-        {/* TODO: 전체 스트릭 배지 — check_ins 기반으로 연속 성공일수 계산 필요 */}
+        {overallStreak > 0 && (
+          <span className="flex items-center gap-1 rounded-full bg-amber-soft px-3 py-1.5 text-xs font-bold text-plum">
+            🔥 {overallStreak}일째
+          </span>
+        )}
       </header>
 
       <section className="mt-4 flex rounded-card bg-white p-4 shadow-sm">
@@ -87,6 +120,7 @@ export default async function HomePage() {
               userId={user.id}
               today={today}
               checkedIn={didICheckInToday(routine.id)}
+              currentStreak={streaksByRoutine.get(routine.id)?.currentStreak ?? 0}
             />
           ))}
           {(!routines || routines.length === 0) && (
