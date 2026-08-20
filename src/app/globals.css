@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-fraunces: "Fraunces", Georgia, serif;
+  --font-noto-kr: "Noto Sans KR", system-ui, sans-serif;
+}
+
+body {
+  background-color: #fbf4ef;
+  color: #2b2130;
+}
+
+/* 커플 성공률 바 등 숫자 정렬용 */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
