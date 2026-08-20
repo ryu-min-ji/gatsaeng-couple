@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import CheckInItem from "./CheckInItem";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export default async function HomePage() {
   // 오늘의 루틴 (본인이 만든 것 + 파트너가 만든 것, RLS가 커플 범위로 걸러줌)
   const { data: routines } = await supabase
     .from("routines")
-    .select("id, title")
+    .select("id, title, verification_type")
     .order("created_at", { ascending: true });
 
   // 오늘 인증 여부 (본인/파트너)
@@ -78,19 +79,15 @@ export default async function HomePage() {
         </div>
         <ul className="flex flex-col gap-2">
           {routines?.map((routine) => (
-            <li
+            <CheckInItem
               key={routine.id}
-              className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm"
-            >
-              <span className="flex-1 text-sm font-bold">{routine.title}</span>
-              <span
-                className={`h-7 w-7 rounded-full ${
-                  didICheckInToday(routine.id) ? "bg-coral" : "border-2 border-border"
-                }`}
-                aria-label={didICheckInToday(routine.id) ? "인증완료" : "미인증"}
-              />
-              {/* TODO: 클릭 시 인증(check_ins insert) 처리 — 사진/텍스트 업로드 모달 */}
-            </li>
+              routineId={routine.id}
+              title={routine.title}
+              verificationType={routine.verification_type}
+              userId={user.id}
+              today={today}
+              checkedIn={didICheckInToday(routine.id)}
+            />
           ))}
           {(!routines || routines.length === 0) && (
             <li className="rounded-2xl bg-white p-4 text-center text-sm text-ink-muted shadow-sm">

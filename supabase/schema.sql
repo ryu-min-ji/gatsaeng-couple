@@ -209,24 +209,24 @@ create index idx_check_ins_user_date on public.check_ins(user_id, date);
 
 
 -- -------------------------------------------------------------
--- 7. Storage — 인증샷 버킷 (버킷 자체는 대시보드 또는 supabase-js로 생성)
---    supabase.storage.createBucket('proofs', { public: false })
---    버킷 생성 후 아래 정책을 storage.objects에 적용한다.
---    파일 경로 규칙: proofs/{user_id}/{routine_id}/{date}.jpg
+-- 7. Storage — 인증샷 버킷
+--    버킷 자체(이름 proofs, private)는 대시보드에서 생성해야 한다
+--    (anon/authenticated 권한으로는 버킷 생성 불가).
+--    파일 경로 규칙: {user_id}/{routine_id}/{date}.{ext}
 -- -------------------------------------------------------------
--- create policy "proofs_select_couple"
---   on storage.objects for select
---   using (
---     bucket_id = 'proofs'
---     and (
---       (storage.foldername(name))[1] = auth.uid()::text
---       or (storage.foldername(name))[1] = public.get_my_partner_id()::text
---     )
---   );
---
--- create policy "proofs_insert_self"
---   on storage.objects for insert
---   with check (
---     bucket_id = 'proofs'
---     and (storage.foldername(name))[1] = auth.uid()::text
---   );
+create policy "proofs_select_couple"
+  on storage.objects for select
+  using (
+    bucket_id = 'proofs'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (storage.foldername(name))[1] = public.get_my_partner_id()::text
+    )
+  );
+
+create policy "proofs_insert_self"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'proofs'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
