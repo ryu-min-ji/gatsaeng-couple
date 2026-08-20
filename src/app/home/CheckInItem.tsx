@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import RoutineTypeIcon from "@/components/RoutineTypeIcon";
 import type { VerificationType } from "@/lib/types/database";
 
 type Props = {
@@ -95,6 +96,7 @@ export default function CheckInItem({
   return (
     <li className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
+        <RoutineTypeIcon type={verificationType} />
         <div className="flex-1">
           <div className="text-sm font-bold">{title}</div>
           <div className="mt-0.5 text-xs text-ink-muted">
