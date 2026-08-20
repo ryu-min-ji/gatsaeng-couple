@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import Avatar from "@/components/Avatar";
 import { dateKeyKST, formatDateDividerKST } from "@/lib/date";
 import type { AttachmentType } from "@/lib/types/database";
+import fixWebmDuration from "fix-webm-duration";
 
 type CommentRecord = {
   id: string;
@@ -61,6 +62,7 @@ export default function CommentThread({
   const recorderRef = useRef<{ recorder: MediaRecorder; stream: MediaStream } | null>(null);
   const cancelledRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordStartRef = useRef(0);
 
   const micSupported =
     typeof window !== "undefined" &&
@@ -117,19 +119,30 @@ export default function CommentThread({
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
       };
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         if (timerRef.current) clearInterval(timerRef.current);
         setRecording(false);
         setRecordSeconds(0);
         recorderRef.current = null;
         if (cancelledRef.current) return;
-        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+
+        const mimeType = recorder.mimeType || "audio/webm";
+        const rawBlob = new Blob(chunks, { type: mimeType });
+        const durationMs = Date.now() - recordStartRef.current;
+
+        // MediaRecorder로 만든 webm에는 길이(duration) 메타데이터가 없어서
+        // <audio>가 0:00/0:00으로 표시되고 재생도 안 되는 경우가 있다.
+        const blob = mimeType.includes("webm")
+          ? await fixWebmDuration(rawBlob, durationMs)
+          : rawBlob;
+
         clearPendingFile();
         setPendingFile({ kind: "audio", blob, previewUrl: URL.createObjectURL(blob) });
       };
 
       recorderRef.current = { recorder, stream };
+      recordStartRef.current = Date.now();
       recorder.start();
       setRecording(true);
       setRecordSeconds(0);
