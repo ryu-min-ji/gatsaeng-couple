@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import HeartBadge from "@/components/HeartBadge";
 
 export default function ConnectPage() {
   const supabase = createClient();
@@ -12,6 +14,7 @@ export default function ConnectPage() {
   const [partnerCode, setPartnerCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -30,6 +33,33 @@ export default function ConnectPage() {
     }
     loadProfile();
   }, [supabase]);
+
+  async function handleCopy() {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopyFeedback("복사됐어요");
+    } catch {
+      setCopyFeedback("복사에 실패했어요");
+    }
+    setTimeout(() => setCopyFeedback(null), 2000);
+  }
+
+  async function handleShare() {
+    if (!inviteCode) return;
+    const shareText = `갓생커플에서 같이 루틴 인증해요! 초대코드: ${inviteCode}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "갓생커플 초대", text: shareText });
+      } catch {
+        // 사용자가 공유를 취소한 경우 등 — 별도 처리 없이 무시
+      }
+      return;
+    }
+
+    await handleCopy();
+  }
 
   async function handleConnect() {
     setError(null);
@@ -51,7 +81,8 @@ export default function ConnectPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-6 pb-10 pt-16 text-center">
-      <h1 className="font-display text-2xl font-bold leading-snug text-plum">
+      <HeartBadge />
+      <h1 className="mt-4 font-display text-2xl font-bold leading-snug text-plum dark:text-white">
         혼자 하지 말고,
         <br />
         같이 갓생 살자
@@ -60,11 +91,31 @@ export default function ConnectPage() {
         파트너를 초대하고 오늘부터 같이 루틴을 인증해보세요
       </p>
 
-      <section className="mt-8 w-full rounded-card bg-white p-6 shadow-sm">
-        <div className="text-left text-xs font-bold tracking-wide text-ink-muted">내 초대코드</div>
-        <div className="mt-2 font-display text-2xl font-bold tracking-wide text-coral">
+      <section className="mt-8 w-full rounded-card bg-surface p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="text-left text-xs font-bold tracking-wide text-ink-muted">내 초대코드</div>
+          <button
+            type="button"
+            onClick={handleCopy}
+            disabled={!inviteCode}
+            aria-label="초대코드 복사하기"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-coral-soft text-coral transition hover:opacity-80 disabled:opacity-40"
+          >
+            ⧉
+          </button>
+        </div>
+        <div className="mt-2 text-left font-display text-2xl font-bold tracking-wide text-coral">
           {inviteCode ?? "불러오는 중..."}
         </div>
+        {copyFeedback && <p className="mt-1 text-left text-xs text-ink-muted">{copyFeedback}</p>}
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={!inviteCode}
+          className="mt-4 w-full rounded-xl bg-coral py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+        >
+          코드 공유하기
+        </button>
       </section>
 
       <div className="my-6 flex w-full items-center gap-3 text-xs text-ink-muted">
@@ -88,11 +139,15 @@ export default function ConnectPage() {
         <button
           onClick={handleConnect}
           disabled={loading || partnerCode.trim().length === 0}
-          className="mt-3 w-full rounded-xl border border-plum py-3 text-sm font-bold text-plum transition hover:bg-plum hover:text-white disabled:opacity-40"
+          className="mt-3 w-full rounded-xl border border-plum py-3 text-sm font-bold text-plum transition hover:bg-plum hover:text-white disabled:opacity-40 dark:border-white dark:text-white"
         >
           {loading ? "연결하는 중..." : "연결하기"}
         </button>
       </div>
+
+      <Link href="/home" className="mt-6 text-xs font-bold text-ink-muted underline">
+        나중에 연결할게요 · 먼저 둘러보기
+      </Link>
     </main>
   );
 }
