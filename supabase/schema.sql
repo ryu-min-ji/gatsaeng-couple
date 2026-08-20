@@ -16,6 +16,7 @@ create table public.profiles (
   avatar_url   text,
   partner_id   uuid references public.profiles(id) on delete set null,
   invite_code  text unique not null default upper(substr(md5(random()::text), 1, 6)),
+  connected_at timestamptz,
   created_at   timestamptz not null default now()
 );
 
@@ -26,7 +27,7 @@ create policy "profiles_select_self_or_partner"
   on public.profiles for select
   using (
     id = auth.uid()
-    or id = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or id = public.get_my_partner_id()
   );
 
 -- 자신의 프로필만 수정 가능
@@ -38,6 +39,21 @@ create policy "profiles_update_self"
 create policy "profiles_insert_self"
   on public.profiles for insert
   with check (id = auth.uid());
+
+-- 파트너 id 조회용 security definer 함수.
+-- RLS 정책 안에서 partner_id를 얻으려고 profiles를 직접 서브쿼리하면,
+-- 그 서브쿼리도 같은 정책의 적용을 받아 정책 평가가 자기 자신을 다시
+-- 트리거하는 무한 재귀(Postgres 42P17)에 빠진다. security definer로
+-- 감싸면 이 함수 내부의 조회는 RLS를 우회해서 재귀 없이 끝난다.
+create or replace function public.get_my_partner_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select partner_id from public.profiles where id = auth.uid()
+$$;
 
 
 -- -------------------------------------------------------------
@@ -88,8 +104,8 @@ begin
     raise exception '자기 자신을 연결할 수 없습니다';
   end if;
 
-  update public.profiles set partner_id = target.id where id = me;
-  update public.profiles set partner_id = me where id = target.id;
+  update public.profiles set partner_id = target.id, connected_at = now() where id = me;
+  update public.profiles set partner_id = me, connected_at = now() where id = target.id;
 
   return (select p from public.profiles p where id = me);
 end;
@@ -105,11 +121,22 @@ create table public.routines (
   title             text not null,
   verification_type text not null check (verification_type in ('photo', 'text', 'check')),
   success_rule      text not null default 'both' check (success_rule in ('both', 'either')),
+  frequency         text not null default 'daily' check (frequency in ('daily', 'weekdays', 'weekends', 'custom')),
+  frequency_days    int[],
   start_date        date not null default current_date,
   end_date          date,
+  penalty_text      text,
+  assignee_id       uuid references public.profiles(id) on delete set null,
   created_by        uuid not null references public.profiles(id) on delete cascade,
   created_at        timestamptz not null default now()
 );
+-- assignee_id가 null이면 "공동 루틴"(둘 다 참여), 특정 profile을 가리키면
+-- 그 사람만의 개인 할일. 파트너 화면에도 여전히 보이지만(같이 지켜보고
+-- 응원하라고) 체크인은 assignee 본인만 가능하도록 check_ins RLS에서 막는다.
+--
+-- frequency='custom'일 때만 frequency_days를 쓴다. 0(일)~6(토) 요일 번호 배열.
+-- "매일 하기엔 너무 빡빡하다"는 문제를 풀기 위한 필드라, 스트릭 계산은
+-- 목표 요일이 아닌 날은 건너뛰고(실패로 안 치고) 목표 요일끼리만 연속성을 본다.
 
 alter table public.routines enable row level security;
 
@@ -118,7 +145,7 @@ create policy "routines_select_couple"
   on public.routines for select
   using (
     created_by = auth.uid()
-    or created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or created_by = public.get_my_partner_id()
   );
 
 create policy "routines_insert_self"
@@ -129,7 +156,7 @@ create policy "routines_update_couple"
   on public.routines for update
   using (
     created_by = auth.uid()
-    or created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or created_by = public.get_my_partner_id()
   );
 
 create policy "routines_delete_owner"
@@ -146,11 +173,14 @@ create table public.check_ins (
   routine_id uuid not null references public.routines(id) on delete cascade,
   user_id    uuid not null references public.profiles(id) on delete cascade,
   date       date not null default current_date,
+  status     text not null default 'success' check (status in ('success', 'failed')),
   proof_url  text,
   memo       text,
   created_at timestamptz not null default now(),
   unique (routine_id, user_id, date)
 );
+-- status='failed'는 "하루 끝나기 전에 오늘은 못 하겠다"고 직접 표시하는 행.
+-- 스트릭/성공률 계산(streak.ts)은 status='success'인 행만 성공으로 센다.
 
 alter table public.check_ins enable row level security;
 
@@ -158,7 +188,7 @@ create policy "check_ins_select_couple"
   on public.check_ins for select
   using (
     user_id = auth.uid()
-    or user_id = (select p.partner_id from public.profiles p where p.id = auth.uid())
+    or user_id = public.get_my_partner_id()
   );
 
 -- 본인 명의로만, 그리고 자신이 속한 커플의 루틴에만 인증 가능
@@ -171,8 +201,9 @@ create policy "check_ins_insert_self"
       where r.id = routine_id
         and (
           r.created_by = auth.uid()
-          or r.created_by = (select p.partner_id from public.profiles p where p.id = auth.uid())
+          or r.created_by = public.get_my_partner_id()
         )
+        and (r.assignee_id is null or r.assignee_id = auth.uid())
     )
   );
 
@@ -194,26 +225,121 @@ create index idx_check_ins_user_date on public.check_ins(user_id, date);
 
 
 -- -------------------------------------------------------------
--- 7. Storage — 인증샷 버킷 (버킷 자체는 대시보드 또는 supabase-js로 생성)
---    supabase.storage.createBucket('proofs', { public: false })
---    버킷 생성 후 아래 정책을 storage.objects에 적용한다.
---    파일 경로 규칙: proofs/{user_id}/{routine_id}/{date}.jpg
+-- 7. Storage — 인증샷 버킷
+--    버킷 자체(이름 proofs, private)는 대시보드에서 생성해야 한다
+--    (anon/authenticated 권한으로는 버킷 생성 불가).
+--    파일 경로 규칙: {user_id}/{routine_id}/{date}.{ext}
 -- -------------------------------------------------------------
--- create policy "proofs_select_couple"
---   on storage.objects for select
---   using (
---     bucket_id = 'proofs'
---     and (
---       (storage.foldername(name))[1] = auth.uid()::text
---       or (storage.foldername(name))[1] = (
---         select p.partner_id::text from public.profiles p where p.id = auth.uid()
---       )
---     )
---   );
---
--- create policy "proofs_insert_self"
---   on storage.objects for insert
---   with check (
---     bucket_id = 'proofs'
---     and (storage.foldername(name))[1] = auth.uid()::text
---   );
+create policy "proofs_select_couple"
+  on storage.objects for select
+  using (
+    bucket_id = 'proofs'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (storage.foldername(name))[1] = public.get_my_partner_id()::text
+    )
+  );
+
+create policy "proofs_insert_self"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'proofs'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+
+-- -------------------------------------------------------------
+-- 8. Realtime — 파트너의 체크인을 실시간으로 반영하기 위해
+--    check_ins 테이블을 supabase_realtime publication에 추가한다.
+--    구독 시에도 RLS(check_ins_select_couple)가 그대로 적용되므로
+--    다른 커플의 체크인은 애초에 이벤트가 전달되지 않는다.
+-- -------------------------------------------------------------
+alter publication supabase_realtime add table public.check_ins;
+
+
+-- -------------------------------------------------------------
+-- 9. Storage — 프로필 사진 버킷
+--    버킷 자체(이름 avatars, public)는 대시보드에서 생성해야 한다.
+--    파일 경로 규칙: {user_id}/avatar.{ext}
+--    프로필 사진은 파트너뿐 아니라 화면 곳곳(마이페이지 등)에 계속
+--    노출되는 가벼운 정보라 proofs와 달리 public 버킷으로 둔다.
+-- -------------------------------------------------------------
+create policy "avatars_select_public"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+create policy "avatars_insert_self"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "avatars_update_self"
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+
+-- -------------------------------------------------------------
+-- 10. comments — 체크인에 파트너가 남기는 댓글(응원/반응)
+--     같은 커플(체크인 작성자 본인 또는 그 파트너)만 조회·작성 가능.
+--     사진/음성 첨부는 proofs 버킷을 그대로 재사용한다
+--     (경로 규칙: {user_id}/comments/{uuid}.{ext}, proofs_select_couple/
+--     proofs_insert_self 정책이 첫 폴더 세그먼트만 검사하므로 그대로 적용됨).
+-- -------------------------------------------------------------
+create table public.comments (
+  id              uuid primary key default gen_random_uuid(),
+  check_in_id     uuid not null references public.check_ins(id) on delete cascade,
+  author_id       uuid not null references public.profiles(id) on delete cascade,
+  body            text,
+  attachment_url  text,
+  attachment_type text check (attachment_type in ('image', 'audio')),
+  created_at      timestamptz not null default now(),
+  constraint comments_has_content check (
+    (body is not null and length(trim(body)) > 0) or attachment_url is not null
+  )
+);
+
+alter table public.comments enable row level security;
+
+create policy "comments_select_couple"
+  on public.comments for select
+  using (
+    exists (
+      select 1 from public.check_ins ci
+      where ci.id = check_in_id
+        and (
+          ci.user_id = auth.uid()
+          or ci.user_id = public.get_my_partner_id()
+        )
+    )
+  );
+
+create policy "comments_insert_self"
+  on public.comments for insert
+  with check (
+    author_id = auth.uid()
+    and exists (
+      select 1 from public.check_ins ci
+      where ci.id = check_in_id
+        and (
+          ci.user_id = auth.uid()
+          or ci.user_id = public.get_my_partner_id()
+        )
+    )
+  );
+
+create policy "comments_update_self"
+  on public.comments for update
+  using (author_id = auth.uid());
+
+create policy "comments_delete_self"
+  on public.comments for delete
+  using (author_id = auth.uid());
+
+create index idx_comments_check_in_id on public.comments(check_in_id);
+
+alter publication supabase_realtime add table public.comments;
