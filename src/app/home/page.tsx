@@ -74,6 +74,28 @@ export default async function HomePage() {
   const didCheckInAnyToday = (userId: string) =>
     recentCheckIns?.some((c) => c.user_id === userId && c.date === today) ?? false;
 
+  // 이번 주(일요일 시작) 성공률: 그 주에 뭐라도 하나 인증한 날 수 / 지금까지 지난 날 수
+  const todayDate = new Date(`${today}T00:00:00Z`);
+  const weekStart = new Date(todayDate);
+  weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+  const daysElapsedThisWeek = todayDate.getUTCDay() + 1;
+
+  function weeklySuccessRate(userId: string) {
+    let successDays = 0;
+    for (let i = 0; i < daysElapsedThisWeek; i++) {
+      const d = new Date(weekStart);
+      d.setUTCDate(d.getUTCDate() + i);
+      const dateStr = d.toISOString().slice(0, 10);
+      if (recentCheckIns?.some((c) => c.user_id === userId && c.date === dateStr)) {
+        successDays++;
+      }
+    }
+    return Math.round((successDays / daysElapsedThisWeek) * 100);
+  }
+
+  const myWeeklyRate = weeklySuccessRate(user.id);
+  const partnerWeeklyRate = partner ? weeklySuccessRate(partner.id) : null;
+
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
       <RealtimeRefresher />
@@ -151,6 +173,28 @@ export default async function HomePage() {
             </li>
           )}
         </ul>
+      </section>
+
+      <section className="mt-4 rounded-card bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-muted">이번 주 성공률</h2>
+        <div className="flex flex-col gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 font-bold">{me?.nickname ?? "나"}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+              <div className="h-full rounded-full bg-coral" style={{ width: `${myWeeklyRate}%` }} />
+            </div>
+            <span className="w-9 shrink-0 text-right font-bold">{myWeeklyRate}%</span>
+          </div>
+          {partner && (
+            <div className="flex items-center gap-2">
+              <span className="w-12 shrink-0 font-bold">{partner.nickname}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-plum" style={{ width: `${partnerWeeklyRate}%` }} />
+              </div>
+              <span className="w-9 shrink-0 text-right font-bold">{partnerWeeklyRate}%</span>
+            </div>
+          )}
+        </div>
       </section>
       <BottomNav />
     </main>

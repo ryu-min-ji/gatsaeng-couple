@@ -15,6 +15,7 @@ export type Profile = {
   avatar_url: string | null;
   partner_id: string | null;
   invite_code: string;
+  connected_at: string | null;
   created_at: string;
 };
 

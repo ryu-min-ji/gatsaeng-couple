@@ -19,9 +19,16 @@ export default async function MyPage() {
 
   const { data: me } = await supabase
     .from("profiles")
-    .select("nickname, partner_id, created_at")
+    .select("nickname, partner_id, connected_at")
     .eq("id", user.id)
     .single();
+
+  const connectedDaysAgo = me?.connected_at
+    ? Math.floor(
+        (new Date(`${today}T00:00:00Z`).getTime() - new Date(me.connected_at).setUTCHours(0, 0, 0, 0)) /
+          86400000
+      ) + 1
+    : null;
 
   const { data: partner } = me?.partner_id
     ? await supabase.from("profiles").select("nickname").eq("id", me.partner_id).single()
@@ -96,7 +103,9 @@ export default async function MyPage() {
           <h1 className="font-display text-lg font-bold text-plum">
             {me?.nickname} {partner ? `& ${partner.nickname}` : ""}
           </h1>
-          {/* TODO: 커플 연결일(profiles.created_at 대신 연결 이벤트를 별도 기록하면 더 정확) */}
+          {connectedDaysAgo !== null && (
+            <p className="text-xs text-ink-muted">연결한 지 {connectedDaysAgo}일째</p>
+          )}
         </div>
       </header>
 

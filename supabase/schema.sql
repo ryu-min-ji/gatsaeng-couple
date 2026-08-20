@@ -16,6 +16,7 @@ create table public.profiles (
   avatar_url   text,
   partner_id   uuid references public.profiles(id) on delete set null,
   invite_code  text unique not null default upper(substr(md5(random()::text), 1, 6)),
+  connected_at timestamptz,
   created_at   timestamptz not null default now()
 );
 
@@ -103,8 +104,8 @@ begin
     raise exception '자기 자신을 연결할 수 없습니다';
   end if;
 
-  update public.profiles set partner_id = target.id where id = me;
-  update public.profiles set partner_id = me where id = target.id;
+  update public.profiles set partner_id = target.id, connected_at = now() where id = me;
+  update public.profiles set partner_id = me, connected_at = now() where id = target.id;
 
   return (select p from public.profiles p where id = me);
 end;

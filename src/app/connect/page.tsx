@@ -12,6 +12,7 @@ export default function ConnectPage() {
   const [partnerCode, setPartnerCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -30,6 +31,33 @@ export default function ConnectPage() {
     }
     loadProfile();
   }, [supabase]);
+
+  async function handleCopy() {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopyFeedback("복사됐어요");
+    } catch {
+      setCopyFeedback("복사에 실패했어요");
+    }
+    setTimeout(() => setCopyFeedback(null), 2000);
+  }
+
+  async function handleShare() {
+    if (!inviteCode) return;
+    const shareText = `갓생커플에서 같이 루틴 인증해요! 초대코드: ${inviteCode}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "갓생커플 초대", text: shareText });
+      } catch {
+        // 사용자가 공유를 취소한 경우 등 — 별도 처리 없이 무시
+      }
+      return;
+    }
+
+    await handleCopy();
+  }
 
   async function handleConnect() {
     setError(null);
@@ -61,10 +89,30 @@ export default function ConnectPage() {
       </p>
 
       <section className="mt-8 w-full rounded-card bg-white p-6 shadow-sm">
-        <div className="text-left text-xs font-bold tracking-wide text-ink-muted">내 초대코드</div>
-        <div className="mt-2 font-display text-2xl font-bold tracking-wide text-coral">
+        <div className="flex items-center justify-between">
+          <div className="text-left text-xs font-bold tracking-wide text-ink-muted">내 초대코드</div>
+          <button
+            type="button"
+            onClick={handleCopy}
+            disabled={!inviteCode}
+            aria-label="초대코드 복사하기"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-coral-soft text-coral transition hover:opacity-80 disabled:opacity-40"
+          >
+            ⧉
+          </button>
+        </div>
+        <div className="mt-2 text-left font-display text-2xl font-bold tracking-wide text-coral">
           {inviteCode ?? "불러오는 중..."}
         </div>
+        {copyFeedback && <p className="mt-1 text-left text-xs text-ink-muted">{copyFeedback}</p>}
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={!inviteCode}
+          className="mt-4 w-full rounded-xl bg-coral py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+        >
+          코드 공유하기
+        </button>
       </section>
 
       <div className="my-6 flex w-full items-center gap-3 text-xs text-ink-muted">

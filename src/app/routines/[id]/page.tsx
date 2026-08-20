@@ -71,6 +71,12 @@ export default async function RoutineDetailPage({
   const myRate = successRate(user.id);
   const partnerRate = partner ? successRate(partner.id) : null;
 
+  function nicknameFor(userId: string) {
+    if (userId === user!.id) return me?.nickname ?? "나";
+    if (userId === partner?.id) return partner.nickname;
+    return "상대방";
+  }
+
   const todayParts = today.split("-");
   const todayYear = Number(todayParts[0]);
   const todayMonth = Number(todayParts[1]);
@@ -192,8 +198,9 @@ export default async function RoutineDetailPage({
           {history.map((entry) => (
             <li key={entry.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="text-sm font-bold">
-                {entry.date} · {new Date(entry.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                {nicknameFor(entry.user_id)} · {new Date(entry.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
               </div>
+              <div className="text-xs text-ink-muted">{entry.date}</div>
               {entry.memo && <div className="mt-1 text-xs text-ink-muted">&ldquo;{entry.memo}&rdquo;</div>}
             </li>
           ))}
