@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -67,9 +68,14 @@ export default async function HomePage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
-          오늘의 루틴 · {routines?.length ?? 0}개
-        </h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-ink-muted">
+            오늘의 루틴 · {routines?.length ?? 0}개
+          </h2>
+          <Link href="/routines/new" className="text-xs font-bold text-coral">
+            + 새 루틴
+          </Link>
+        </div>
         <ul className="flex flex-col gap-2">
           {routines?.map((routine) => (
             <li
