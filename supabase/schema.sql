@@ -230,3 +230,12 @@ create policy "proofs_insert_self"
     bucket_id = 'proofs'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+
+-- -------------------------------------------------------------
+-- 8. Realtime — 파트너의 체크인을 실시간으로 반영하기 위해
+--    check_ins 테이블을 supabase_realtime publication에 추가한다.
+--    구독 시에도 RLS(check_ins_select_couple)가 그대로 적용되므로
+--    다른 커플의 체크인은 애초에 이벤트가 전달되지 않는다.
+-- -------------------------------------------------------------
+alter publication supabase_realtime add table public.check_ins;

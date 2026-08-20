@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CheckInItem from "./CheckInItem";
+import RealtimeRefresher from "./RealtimeRefresher";
 import { calculateRoutineStreak } from "@/lib/streak";
 
 export default async function HomePage() {
@@ -69,8 +70,12 @@ export default async function HomePage() {
       (c) => c.routine_id === routineId && c.user_id === user.id && c.date === today
     ) ?? false;
 
+  const didCheckInAnyToday = (userId: string) =>
+    recentCheckIns?.some((c) => c.user_id === userId && c.date === today) ?? false;
+
   return (
     <main className="mx-auto min-h-screen max-w-md bg-bg px-5 pb-24 pt-8">
+      <RealtimeRefresher />
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted">
@@ -91,6 +96,13 @@ export default async function HomePage() {
             {me?.nickname?.[0] ?? "?"}
           </div>
           <div className="text-sm font-bold">{me?.nickname ?? "나"}</div>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+              didCheckInAnyToday(user.id) ? "bg-coral-soft text-coral" : "bg-border text-ink-muted"
+            }`}
+          >
+            {didCheckInAnyToday(user.id) ? "인증완료" : "대기중"}
+          </span>
         </div>
         <div className="w-px bg-border" />
         <div className="flex flex-1 flex-col items-center gap-1">
@@ -98,6 +110,15 @@ export default async function HomePage() {
             {partner?.nickname?.[0] ?? "?"}
           </div>
           <div className="text-sm font-bold">{partner?.nickname ?? "파트너 대기중"}</div>
+          {partner && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                didCheckInAnyToday(partner.id) ? "bg-coral-soft text-coral" : "bg-border text-ink-muted"
+              }`}
+            >
+              {didCheckInAnyToday(partner.id) ? "인증완료" : "대기중"}
+            </span>
+          )}
         </div>
       </section>
 
