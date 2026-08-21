@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import RoutineTypeIcon from "@/components/RoutineTypeIcon";
 import type { CheckInStatus, VerificationType } from "@/lib/types/database";
 
+type Accent = "amber" | "coral" | "plum";
+
 type Props = {
   routineId: string;
   title: string;
@@ -16,6 +18,14 @@ type Props = {
   today: string;
   status: CheckInStatus | "pending";
   currentStreak: number;
+  accent: Accent;
+};
+
+// 공동/개인/상대 루틴을 한눈에 구분할 수 있도록 섹션마다 강조색을 다르게 준다.
+const accentClasses: Record<Accent, string> = {
+  amber: "border-l-4 border-amber bg-amber-soft dark:bg-amber/15",
+  coral: "border-l-4 border-coral bg-coral-soft dark:bg-coral/15",
+  plum: "border-l-4 border-plum bg-plum/5 dark:border-white/40 dark:bg-white/10",
 };
 
 export default function CheckInItem({
@@ -26,6 +36,7 @@ export default function CheckInItem({
   today,
   status,
   currentStreak,
+  accent,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -107,7 +118,7 @@ export default function CheckInItem({
   }
 
   return (
-    <li className="rounded-2xl bg-surface p-4 shadow-sm">
+    <li className={cn("rounded-2xl p-4 shadow-sm", accentClasses[accent])}>
       <div className="flex items-center gap-3">
         <Link href={`/routines/${routineId}`} className="flex flex-1 items-center gap-3">
           <RoutineTypeIcon type={verificationType} />

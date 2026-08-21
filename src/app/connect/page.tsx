@@ -25,14 +25,19 @@ export default function ConnectPage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("invite_code")
+        .select("invite_code, partner_id")
         .eq("id", user.id)
         .single();
+
+      if (data?.partner_id) {
+        router.replace("/home");
+        return;
+      }
 
       setInviteCode(data?.invite_code ?? null);
     }
     loadProfile();
-  }, [supabase]);
+  }, [supabase, router]);
 
   async function handleCopy() {
     if (!inviteCode) return;
