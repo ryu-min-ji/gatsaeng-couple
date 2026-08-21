@@ -23,7 +23,7 @@ type Props = {
 
 // 공동/개인/상대 루틴을 한눈에 구분할 수 있도록 섹션마다 강조색을 다르게 준다.
 const accentClasses: Record<Accent, string> = {
-  amber: "border-l-4 border-amber/50 bg-amber-soft/50 dark:bg-amber/10",
+  amber: "border-l-4 border-amber/50 bg-surface",
   coral: "border-l-4 border-coral/50 bg-coral-soft/50 dark:bg-coral/10",
   plum: "border-l-4 border-plum/30 bg-plum/[0.03] dark:border-white/25 dark:bg-white/5",
 };
