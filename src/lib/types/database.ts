@@ -96,6 +96,10 @@ export type Database = {
         Args: { target_code: string };
         Returns: Profile;
       };
+      disconnect_partner: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

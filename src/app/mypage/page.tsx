@@ -4,6 +4,7 @@ import Link from "next/link";
 import { calculateRoutineStreak, isTargetDay } from "@/lib/streak";
 import LogoutButton from "./LogoutButton";
 import DeleteAccountButton from "./DeleteAccountButton";
+import DisconnectPartnerButton from "./DisconnectPartnerButton";
 import BottomNav from "@/components/BottomNav";
 import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -189,6 +190,11 @@ export default async function MyPage() {
         <div className="mb-2">
           <NotificationToggle />
         </div>
+        {partner && (
+          <div className="mb-2">
+            <DisconnectPartnerButton partnerNickname={partner.nickname} />
+          </div>
+        )}
         <div className="mb-2">
           <LogoutButton />
         </div>
