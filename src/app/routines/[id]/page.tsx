@@ -42,7 +42,9 @@ export default async function RoutineDetailPage({
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, title, success_rule, frequency, frequency_days, start_date, penalty_text, created_by")
+    .select(
+      "id, title, success_rule, frequency, frequency_days, start_date, penalty_text, created_by, assignee_id"
+    )
     .eq("id", id)
     .single();
 
@@ -151,6 +153,7 @@ export default async function RoutineDetailPage({
 
   const myRate = successRate(user.id);
   const partnerRate = partner ? successRate(partner.id) : null;
+  const isSharedRoutine = !routine.assignee_id;
 
   const entriesByDate: Record<string, DayEntry[]> = {};
   for (const entry of [...monthCheckIns].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
@@ -221,26 +224,41 @@ export default async function RoutineDetailPage({
 
       <section className="mt-4 rounded-card bg-surface p-4 shadow-sm">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-ink-muted">
-          이 루틴 성공률 비교
+          {isSharedRoutine ? "이 루틴 성공률 비교" : "이 루틴 성공률"}
         </h2>
-        <div className="flex flex-col gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-12 shrink-0 font-bold">{me?.nickname ?? "나"}</span>
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
-              <div className="h-full rounded-full bg-coral" style={{ width: `${myRate}%` }} />
-            </div>
-            <span className="w-9 shrink-0 text-right font-bold">{myRate}%</span>
-          </div>
-          {partner && (
+        {isSharedRoutine ? (
+          <div className="flex flex-col gap-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-12 shrink-0 font-bold">{partner.nickname}</span>
+              <span className="w-12 shrink-0 font-bold">{me?.nickname ?? "나"}</span>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
-                <div className="h-full rounded-full bg-plum" style={{ width: `${partnerRate}%` }} />
+                <div className="h-full rounded-full bg-coral" style={{ width: `${myRate}%` }} />
               </div>
-              <span className="w-9 shrink-0 text-right font-bold">{partnerRate}%</span>
+              <span className="w-9 shrink-0 text-right font-bold">{myRate}%</span>
             </div>
-          )}
-        </div>
+            {partner && (
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 font-bold">{partner.nickname}</span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+                  <div className="h-full rounded-full bg-plum" style={{ width: `${partnerRate}%` }} />
+                </div>
+                <span className="w-9 shrink-0 text-right font-bold">{partnerRate}%</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-12 shrink-0 font-bold">{nicknameFor(routine.assignee_id!)}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full rounded-full bg-coral"
+                style={{ width: `${successRate(routine.assignee_id!)}%` }}
+              />
+            </div>
+            <span className="w-9 shrink-0 text-right font-bold">
+              {successRate(routine.assignee_id!)}%
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="mt-4 rounded-card bg-surface p-4 shadow-sm">

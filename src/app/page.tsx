@@ -1,7 +1,26 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import CoupleBadge from "@/components/CoupleBadge";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("nickname, partner_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.partner_id) redirect("/home");
+    if (profile?.nickname && profile.nickname !== "갓생러") redirect("/connect");
+    redirect("/profile/setup");
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 px-6 text-center">
       <CoupleBadge />
