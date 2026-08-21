@@ -111,6 +111,39 @@ begin
 end;
 $$;
 
+-- 파트너 연결 해제 RPC.
+-- 내 개인 루틴(assignee_id = 나)과 그 인증 기록은 그대로 남기고,
+-- 공동 루틴(assignee_id is null)과 상대방 루틴(assignee_id = 상대)은
+-- 삭제한다 (check_ins/comments는 routines FK on delete cascade로 함께 삭제됨).
+-- 그 다음 양쪽 profiles의 partner_id/connected_at을 초기화한다.
+create or replace function public.disconnect_partner()
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  my_partner uuid;
+begin
+  if me is null then
+    raise exception '로그인이 필요합니다';
+  end if;
+
+  select partner_id into my_partner from public.profiles where id = me;
+
+  if my_partner is null then
+    raise exception '연결된 파트너가 없습니다';
+  end if;
+
+  delete from public.routines
+  where created_by in (me, my_partner)
+    and (assignee_id is null or assignee_id = my_partner);
+
+  update public.profiles set partner_id = null, connected_at = null where id = me;
+  update public.profiles set partner_id = null, connected_at = null where id = my_partner;
+end;
+$$;
+
 
 -- -------------------------------------------------------------
 -- 4. routines
