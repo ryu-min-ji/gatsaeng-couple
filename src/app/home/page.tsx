@@ -261,7 +261,7 @@ export default async function HomePage() {
                 <Link
                   key={routine.id}
                   href={`/routines/${routine.id}`}
-                  className="flex items-center gap-3 rounded-2xl border-l-4 border-plum bg-plum/5 p-4 shadow-sm dark:border-white/40 dark:bg-white/10"
+                  className="flex items-center gap-3 rounded-2xl border-l-4 border-plum/30 bg-plum/[0.03] p-4 shadow-sm dark:border-white/25 dark:bg-white/5"
                 >
                   <RoutineTypeIcon type={routine.verification_type} />
                   <div className="flex-1">
