@@ -194,7 +194,10 @@ export default async function HomePage() {
       </div>
 
       <section className="mt-2">
-        <h3 className="mb-2 text-xs font-bold text-ink-muted">공동 루틴</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-amber" />
+          공동 루틴
+        </h3>
         <ul className="flex flex-col gap-2">
           {sharedRoutines.map((routine) => (
             <CheckInItem
@@ -206,6 +209,7 @@ export default async function HomePage() {
               today={today}
               status={routineStatusToday(routine.id, user.id)}
               currentStreak={streaksByRoutine.get(routine.id)?.currentStreak ?? 0}
+              accent="amber"
             />
           ))}
           {sharedRoutines.length === 0 && (
@@ -218,7 +222,10 @@ export default async function HomePage() {
       </section>
 
       <section className="mt-4">
-        <h3 className="mb-2 text-xs font-bold text-ink-muted">{me?.nickname ?? "나"}의 할 일</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-coral" />
+          {me?.nickname ?? "나"}의 할 일
+        </h3>
         <ul className="flex flex-col gap-2">
           {myRoutines.map((routine) => (
             <CheckInItem
@@ -230,6 +237,7 @@ export default async function HomePage() {
               today={today}
               status={routineStatusToday(routine.id, user.id)}
               currentStreak={streaksByRoutine.get(routine.id)?.currentStreak ?? 0}
+              accent="coral"
             />
           ))}
           {myRoutines.length === 0 && (
@@ -242,7 +250,10 @@ export default async function HomePage() {
 
       {partner && (
         <section className="mt-4">
-          <h3 className="mb-2 text-xs font-bold text-ink-muted">{partner.nickname}의 할 일</h3>
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink-muted">
+            <span className="h-2 w-2 rounded-full bg-plum dark:bg-white/70" />
+            {partner.nickname}의 할 일
+          </h3>
           <ul className="flex flex-col gap-2">
             {partnerRoutines.map((routine) => {
               const status = routineStatusToday(routine.id, partner.id);
@@ -250,7 +261,7 @@ export default async function HomePage() {
                 <Link
                   key={routine.id}
                   href={`/routines/${routine.id}`}
-                  className="flex items-center gap-3 rounded-2xl bg-surface p-4 shadow-sm"
+                  className="flex items-center gap-3 rounded-2xl border-l-4 border-plum/30 bg-plum/[0.03] p-4 shadow-sm dark:border-white/25 dark:bg-white/5"
                 >
                   <RoutineTypeIcon type={routine.verification_type} />
                   <div className="flex-1">

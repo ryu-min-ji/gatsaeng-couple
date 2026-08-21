@@ -24,7 +24,7 @@ export default function LoginPage() {
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/profile/setup` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
